@@ -5,6 +5,7 @@
 import { DoctorService } from "./doctor-service";
 import { AppointmentService } from "./appointment-service";
 import { ProductService } from "./product-service";
+import { BloodDonationService } from "./blood-donation-service";
 import { Doctor, Appointment, Product } from "./types";
 
 // Re-export types
@@ -15,11 +16,13 @@ export class ApiClient {
   private doctorService: DoctorService;
   private appointmentService: AppointmentService;
   private productService: ProductService;
+  private bloodDonationService: BloodDonationService;
 
   constructor() {
     this.doctorService = new DoctorService();
     this.appointmentService = new AppointmentService();
     this.productService = new ProductService();
+    this.bloodDonationService = new BloodDonationService();
   }
 
   // Doctor related methods
@@ -79,6 +82,23 @@ export class ApiClient {
 
   async updateProductStock(id: string, newStock: number) {
     return this.productService.updateProductStock(id, newStock);
+  }
+  
+  // Blood donation related methods
+  async registerDonor(donorData: any) {
+    return this.bloodDonationService.registerDonor(donorData);
+  }
+  
+  async checkDonorStatus(userId: string) {
+    return this.bloodDonationService.checkDonorStatus(userId);
+  }
+  
+  async scheduleDonation(donationData: any) {
+    return this.bloodDonationService.scheduleDonation(donationData);
+  }
+  
+  async getUserDonations(userId: string) {
+    return this.bloodDonationService.getUserDonations(userId);
   }
 }
 
