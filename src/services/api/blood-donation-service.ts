@@ -39,7 +39,7 @@ export class BloodDonationService {
     try {
       const { data, error } = await supabase
         .from('blood_donors')
-        .insert([donorData])
+        .insert(donorData)
         .select();
       
       if (error) {
@@ -85,7 +85,7 @@ export class BloodDonationService {
     try {
       const { error } = await supabase
         .from('blood_donations')
-        .insert([donation]);
+        .insert(donation);
       
       if (error) {
         console.error('Error scheduling donation:', error);
@@ -118,7 +118,7 @@ export class BloodDonationService {
         return [];
       }
       
-      return data;
+      return data as BloodDonation[];
     } catch (error) {
       console.error('Error in getUserDonations:', error);
       return [];

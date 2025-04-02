@@ -50,6 +50,99 @@ export type Database = {
           },
         ]
       }
+      blood_donations: {
+        Row: {
+          center_id: number
+          center_name: string
+          created_at: string | null
+          date: string
+          id: string
+          time: string
+          user_id: string
+        }
+        Insert: {
+          center_id: number
+          center_name: string
+          created_at?: string | null
+          date: string
+          id?: string
+          time: string
+          user_id: string
+        }
+        Update: {
+          center_id?: number
+          center_name?: string
+          created_at?: string | null
+          date?: string
+          id?: string
+          time?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      blood_donors: {
+        Row: {
+          address: string
+          blood_type: string
+          created_at: string | null
+          dob: string
+          id: string
+          name: string
+          phone: string
+          user_id: string
+        }
+        Insert: {
+          address: string
+          blood_type: string
+          created_at?: string | null
+          dob: string
+          id?: string
+          name: string
+          phone: string
+          user_id: string
+        }
+        Update: {
+          address?: string
+          blood_type?: string
+          created_at?: string | null
+          dob?: string
+          id?: string
+          name?: string
+          phone?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      blood_requests: {
+        Row: {
+          blood_type: string
+          created_at: string | null
+          date_needed: string
+          hospital: string
+          id: string
+          reason: string
+          urgency: string
+        }
+        Insert: {
+          blood_type: string
+          created_at?: string | null
+          date_needed: string
+          hospital: string
+          id?: string
+          reason: string
+          urgency: string
+        }
+        Update: {
+          blood_type?: string
+          created_at?: string | null
+          date_needed?: string
+          hospital?: string
+          id?: string
+          reason?: string
+          urgency?: string
+        }
+        Relationships: []
+      }
       doctors: {
         Row: {
           available: boolean | null
