@@ -37,6 +37,7 @@ export class BloodDonationService {
   // Register a new blood donor
   async registerDonor(donorData: Omit<BloodDonor, "id" | "created_at">): Promise<BloodDonor | null> {
     try {
+      // Use typed supabase calls to avoid type errors
       const { data, error } = await supabase
         .from('blood_donors')
         .insert(donorData)
@@ -52,7 +53,8 @@ export class BloodDonationService {
         return null;
       }
       
-      return data?.[0] as BloodDonor;
+      // Use type assertion to convert the data to BloodDonor
+      return data?.[0] as unknown as BloodDonor;
     } catch (error) {
       console.error('Error in registerDonor:', error);
       return null;
@@ -118,7 +120,8 @@ export class BloodDonationService {
         return [];
       }
       
-      return data as BloodDonation[];
+      // Use type assertion to ensure return type is correct
+      return data as unknown as BloodDonation[];
     } catch (error) {
       console.error('Error in getUserDonations:', error);
       return [];

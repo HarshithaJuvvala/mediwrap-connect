@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -91,33 +90,32 @@ const Admin = () => {
   const fetchData = async () => {
     try {
       // Fetch analytics data
-      const usersResponse = await supabase.from('profiles').select('*');
-      const doctorsResponse = await supabase.from('doctors').select('*');
-      const appointmentsResponse = await supabase.from('appointments').select('*');
+      const { data: usersData } = await supabase.from('profiles').select('*');
+      const { data: doctorsData } = await supabase.from('doctors').select('*');
+      const { data: appointmentsData } = await supabase.from('appointments').select('*');
       
       // Calculate approximate revenue (for demo purposes)
       let revenue = 0;
-      if (appointmentsResponse.data) {
-        revenue = appointmentsResponse.data.length * 50; // Assuming $50 per appointment
+      if (appointmentsData) {
+        revenue = appointmentsData.length * 50; // Assuming $50 per appointment
       }
       
       setAnalyticsData({
-        totalUsers: usersResponse.data?.length || 0,
-        totalDoctors: doctorsResponse.data?.length || 0,
-        activeAppointments: appointmentsResponse.data?.filter(a => a.status === 'confirmed').length || 0,
+        totalUsers: usersData?.length || 0,
+        totalDoctors: doctorsData?.length || 0,
+        activeAppointments: appointmentsData?.filter(a => a.status === 'confirmed').length || 0,
         totalRevenue: revenue
       });
       
-      // Fetch users
+      // Fetch users - we can't directly query auth.users so we work with profiles
       const { data: profilesData } = await supabase.from('profiles').select('*');
-      const { data: authData } = await supabase.from('auth.users').select('id, email');
       
+      // We need to create User objects from profile data
       const mergedUsers: User[] = profilesData?.map(profile => {
-        const authUser = authData?.find(u => u.id === profile.id);
         return {
           id: profile.id,
           name: profile.name || 'Unknown',
-          email: authUser?.email || 'unknown@email.com',
+          email: `user-${profile.id.substring(0, 6)}@example.com`, // Use placeholder emails
           role: profile.role || 'patient',
           status: 'Active' as const
         };
@@ -126,7 +124,7 @@ const Admin = () => {
       setUsers(mergedUsers);
       
       // Fetch appointments with doctor and patient names
-      const { data: appointmentsData, error: appointmentsError } = await supabase
+      const { data: appointmentsWithDetails, error: appointmentsError } = await supabase
         .from('appointments')
         .select(`
           id, 
@@ -145,7 +143,7 @@ const Admin = () => {
       
       // Get doctor and patient names
       const enhancedAppointments = await Promise.all(
-        appointmentsData!.map(async appointment => {
+        appointmentsWithDetails?.map(async appointment => {
           // Get doctor name
           const { data: doctorData } = await supabase
             .from('doctors')
@@ -169,7 +167,7 @@ const Admin = () => {
             status: appointment.status,
             type: appointment.type
           };
-        })
+        }) || []
       );
       
       setAppointments(enhancedAppointments);
@@ -213,14 +211,13 @@ const Admin = () => {
   };
 
   const handleEditUser = (user: User) => {
-    const typedUser: User = {
+    setSelectedUser({
       id: user.id,
       name: user.name,
       email: user.email,
       role: user.role,
       status: user.status as "Active" | "Inactive"
-    };
-    setSelectedUser(typedUser);
+    });
     setIsUserDialogOpen(true);
   };
 
@@ -324,8 +321,10 @@ const Admin = () => {
               className="w-full md:w-64"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              startIcon={<Search size={18} />}
             />
+            <div className="flex items-center">
+              <Search size={18} className="ml-2 text-gray-500" />
+            </div>
           </div>
         </div>
         

@@ -1,282 +1,214 @@
-import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import Layout from "@/components/layout/Layout";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/hooks/useAuth";
-import { useToast } from "@/hooks/use-toast";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import Layout from '@/components/layout/Layout';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
+import { Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
+  const [activeTab, setActiveTab] = useState('login');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  const { login, register, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const { login, register, isLoading, isAuthenticated } = useAuth();
-  const { toast } = useToast();
-  const [activeTab, setActiveTab] = useState<string>("login");
-
-  // Login form state
-  const [loginEmail, setLoginEmail] = useState("");
-  const [loginPassword, setLoginPassword] = useState("");
-  const [loginError, setLoginError] = useState<string | null>(null);
-
-  // Registration form state
-  const [registerName, setRegisterName] = useState("");
-  const [registerEmail, setRegisterEmail] = useState("");
-  const [registerPassword, setRegisterPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [registerError, setRegisterError] = useState<string | null>(null);
-
-  // Clear errors when changing tabs
-  useEffect(() => {
-    setLoginError(null);
-    setRegisterError(null);
-  }, [activeTab]);
-
-  // If user is already logged in, redirect to home
-  useEffect(() => {
+  
+  // Redirect if already logged in
+  React.useEffect(() => {
     if (isAuthenticated) {
-      navigate("/");
+      navigate('/');
     }
   }, [isAuthenticated, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoginError(null);
-    
-    if (!loginEmail || !loginPassword) {
-      setLoginError("Please enter both email and password");
-      return;
-    }
+    setLoading(true);
     
     try {
-      await login(loginEmail, loginPassword);
-      // The navigation to home page will happen in the useEffect when isAuthenticated changes
+      await login(email, password);
+      // Success handling is done within the login function
+      // If there's no throw, we can redirect
+      navigate('/');
     } catch (err) {
-      console.error("Login error:", err);
-      if (err instanceof Error) {
-        setLoginError(err.message);
-      } else {
-        setLoginError("An error occurred during login");
-      }
+      console.error('Login error:', err);
+      // Error handling is done within the login function
+    } finally {
+      setLoading(false);
     }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    setRegisterError(null);
     
-    if (!registerName || !registerEmail || !registerPassword || !confirmPassword) {
-      setRegisterError("All fields are required");
+    if (!name || !email || !password) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
       return;
     }
     
-    if (registerPassword !== confirmPassword) {
-      setRegisterError("Passwords do not match");
+    if (password.length < 6) {
+      toast({
+        title: "Password too short",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
       return;
     }
     
-    if (registerPassword.length < 6) {
-      setRegisterError("Password must be at least 6 characters");
-      return;
-    }
+    setLoading(true);
     
     try {
-      await register(registerEmail, registerPassword, registerName, "patient");
-      
+      await register(email, password, name, "patient");
       toast({
         title: "Registration successful",
-        description: "Please check your email to confirm your account",
+        description: "Please sign in with your new account",
       });
-      
-      // Switch to login tab after successful registration
-      setActiveTab("login");
-    } catch (err) {
-      console.error("Registration error:", err);
-      if (err instanceof Error) {
-        setRegisterError(err.message);
-      } else {
-        setRegisterError("An error occurred during registration");
-      }
+      setActiveTab('login');
+    } catch (error) {
+      console.error('Registration error:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
+
   return (
     <Layout>
-      <div className="flex min-h-[calc(100vh-80px)] items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <h2 className="text-3xl font-extrabold text-gray-900 dark:text-gray-100">
-              Welcome to MediWrap
-            </h2>
-            <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-              Your complete healthcare solution
-            </p>
-          </div>
-
-          <Tabs
-            defaultValue="login"
-            value={activeTab}
-            onValueChange={setActiveTab}
-            className="w-full"
-          >
-            <TabsList className="grid w-full grid-cols-2">
+      <div className="container mx-auto px-4 py-8 max-w-md">
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-2xl text-center">Welcome to MediConnect</CardTitle>
+            <CardDescription className="text-center">
+              India's premier healthcare platform
+            </CardDescription>
+          </CardHeader>
+          
+          <Tabs defaultValue="login" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid grid-cols-2">
               <TabsTrigger value="login">Login</TabsTrigger>
               <TabsTrigger value="register">Register</TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Account Login</CardTitle>
-                  <CardDescription>
-                    Enter your email and password to access your account.
-                  </CardDescription>
-                </CardHeader>
-                <form onSubmit={handleLogin}>
-                  <CardContent className="space-y-4">
-                    {loginError && (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{loginError}</AlertDescription>
-                      </Alert>
-                    )}
-                    <div className="space-y-2">
-                      <Label htmlFor="email">Email</Label>
-                      <Input 
-                        id="email" 
-                        type="email" 
-                        placeholder="your@email.com" 
-                        required
-                        value={loginEmail}
-                        onChange={(e) => setLoginEmail(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label htmlFor="password">Password</Label>
-                        <a 
-                          href="#" 
-                          className="text-sm text-mediwrap-blue hover:underline"
-                        >
-                          Forgot password?
-                        </a>
-                      </div>
-                      <Input 
-                        id="password" 
-                        type="password" 
-                        required
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                      />
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-mediwrap-blue hover:bg-mediwrap-blue-light"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Logging in..." : "Sign In"}
-                    </Button>
-                  </CardFooter>
-                </form>
-                <div className="px-6 pb-6 text-center">
-                  <div className="mt-4 text-sm">
-                    <p>
-                      Demo logins:
-                    </p>
-                    <p className="text-gray-600 dark:text-gray-400 mt-1">
-                      admin@example.com / password<br />
-                      doctor@example.com / password<br />
-                      patient@example.com / password
-                    </p>
+              <form onSubmit={handleLogin}>
+                <CardContent className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <label htmlFor="email" className="text-sm font-medium">Email</label>
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
                   </div>
-                </div>
-              </Card>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="password" className="text-sm font-medium">Password</label>
+                    <div className="relative">
+                      <Input
+                        id="password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        required
+                      />
+                      <button 
+                        type="button"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                        onClick={togglePasswordVisibility}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    </div>
+                    <a href="#" className="text-sm text-blue-600 hover:underline block text-right">
+                      Forgot password?
+                    </a>
+                  </div>
+                </CardContent>
+                
+                <CardFooter>
+                  <Button className="w-full" type="submit" disabled={loading}>
+                    {loading ? "Signing in..." : "Sign In"}
+                  </Button>
+                </CardFooter>
+              </form>
             </TabsContent>
             
             <TabsContent value="register">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Create an Account</CardTitle>
-                  <CardDescription>
-                    Enter your information to create a new account.
-                  </CardDescription>
-                </CardHeader>
-                <form onSubmit={handleRegister}>
-                  <CardContent className="space-y-4">
-                    {registerError && (
-                      <Alert variant="destructive">
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>{registerError}</AlertDescription>
-                      </Alert>
-                    )}
-                    <div className="space-y-2">
-                      <Label htmlFor="name">Full Name</Label>
-                      <Input 
-                        id="name" 
-                        placeholder="John Doe" 
+              <form onSubmit={handleRegister}>
+                <CardContent className="space-y-4 pt-4">
+                  <div className="space-y-2">
+                    <label htmlFor="name" className="text-sm font-medium">Full Name</label>
+                    <Input
+                      id="name"
+                      placeholder="John Doe"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="reg-email" className="text-sm font-medium">Email</label>
+                    <Input
+                      id="reg-email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label htmlFor="reg-password" className="text-sm font-medium">Password</label>
+                    <div className="relative">
+                      <Input
+                        id="reg-password"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="••••••••"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
                         required
-                        value={registerName}
-                        onChange={(e) => setRegisterName(e.target.value)}
                       />
+                      <button 
+                        type="button"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2"
+                        onClick={togglePasswordVisibility}
+                      >
+                        {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="register-email">Email</Label>
-                      <Input 
-                        id="register-email" 
-                        type="email" 
-                        placeholder="your@email.com" 
-                        required
-                        value={registerEmail}
-                        onChange={(e) => setRegisterEmail(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="register-password">Password</Label>
-                      <Input 
-                        id="register-password" 
-                        type="password" 
-                        required
-                        value={registerPassword}
-                        onChange={(e) => setRegisterPassword(e.target.value)}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="confirm-password">Confirm Password</Label>
-                      <Input 
-                        id="confirm-password" 
-                        type="password" 
-                        required
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                      />
-                    </div>
-                  </CardContent>
-                  <CardFooter>
-                    <Button 
-                      type="submit" 
-                      className="w-full bg-mediwrap-blue hover:bg-mediwrap-blue-light"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? "Creating Account..." : "Create Account"}
-                    </Button>
-                  </CardFooter>
-                </form>
-              </Card>
+                    <p className="text-sm text-gray-500">
+                      Password must be at least 6 characters
+                    </p>
+                  </div>
+                </CardContent>
+                
+                <CardFooter>
+                  <Button className="w-full" type="submit" disabled={loading}>
+                    {loading ? "Creating Account..." : "Create Account"}
+                  </Button>
+                </CardFooter>
+              </form>
             </TabsContent>
           </Tabs>
-        </div>
+        </Card>
       </div>
     </Layout>
   );
