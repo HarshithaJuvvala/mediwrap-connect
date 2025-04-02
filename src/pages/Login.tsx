@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -21,7 +20,7 @@ import { AlertCircle } from "lucide-react";
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, signup, isLoading, isAuthenticated, error } = useAuth();
+  const { login, register, isLoading, isAuthenticated } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("login");
 
@@ -92,12 +91,7 @@ const Login = () => {
     }
     
     try {
-      await signup({
-        name: registerName,
-        email: registerEmail,
-        password: registerPassword,
-        role: "patient" // Default role for new registrations
-      });
+      await register(registerEmail, registerPassword, registerName, "patient");
       
       toast({
         title: "Registration successful",

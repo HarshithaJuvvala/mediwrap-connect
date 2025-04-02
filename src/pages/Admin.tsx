@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -68,14 +67,18 @@ const Admin = () => {
   const [isAddUserOpen, setIsAddUserOpen] = useState(false);
   const [isEditUserOpen, setIsEditUserOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [newUser, setNewUser] = useState({
+  const [newUser, setNewUser] = useState<{
+    name: string;
+    email: string;
+    role: string;
+    status: "Active" | "Inactive";
+  }>({
     name: "",
     email: "",
     role: "patient",
-    status: "Active" as const
+    status: "Active"
   });
   
-  // Redirect if not admin
   useEffect(() => {
     if (isAuthenticated && user && user.role !== 'admin') {
       toast({
@@ -91,7 +94,6 @@ const Admin = () => {
     }
   }, [isAuthenticated, user, navigate, toast]);
 
-  // Fetch users
   const { data: users = [], isLoading: loadingUsers } = useQuery({
     queryKey: ['adminUsers'],
     queryFn: async () => {
@@ -103,7 +105,6 @@ const Admin = () => {
           return [];
         }
         
-        // Convert to User interface
         return data.users.map(authUser => ({
           id: authUser.id,
           name: authUser.user_metadata?.name || "N/A",
@@ -113,7 +114,6 @@ const Admin = () => {
         })) as User[];
       } catch (error) {
         console.error("Error in fetchUsers:", error);
-        // Return mock data since Supabase admin functions may not be accessible
         return [
           { id: "1", name: "John Doe", email: "john@example.com", role: "patient", status: "Active" },
           { id: "2", name: "Sarah Johnson", email: "sarah@example.com", role: "doctor", status: "Active" },
@@ -125,39 +125,35 @@ const Admin = () => {
     enabled: isAuthenticated && user?.role === 'admin'
   });
 
-  // Fetch tickets
   const [tickets, setTickets] = useState<Ticket[]>([
     { id: 1, user: "John Doe", issue: "Cannot book appointment", status: "Open", priority: "High", date: "2024-03-28" },
     { id: 2, user: "Sarah Johnson", issue: "Payment not processed", status: "In Progress", priority: "Medium", date: "2024-03-27" },
     { id: 3, user: "Robert Smith", issue: "Missing prescription", status: "Closed", priority: "Low", date: "2024-03-25" },
   ]);
 
-  // Fetch appointments
   const { data: appointments = [], isLoading: loadingAppointments } = useQuery({
     queryKey: ['adminAppointments'],
     queryFn: async () => {
       try {
         const { data, error } = await supabase
           .from('appointments')
-          .select('*, patients:patient_id(name), doctors:doctor_id(name)');
+          .select('*');
         
         if (error) {
           console.error("Error fetching appointments:", error);
           return [];
         }
         
-        // Convert to AppointmentAdmin interface
         return data.map(apt => ({
           id: apt.id,
-          patient: apt.patients?.name || `Patient #${apt.patient_id}`,
-          doctor: apt.doctors?.name || `Doctor #${apt.doctor_id}`,
+          patient: `Patient #${apt.patient_id}`,
+          doctor: `Doctor #${apt.doctor_id}`,
           date: apt.date,
           time: apt.time,
           status: apt.status.charAt(0).toUpperCase() + apt.status.slice(1) as "Confirmed" | "Pending" | "Cancelled"
         }));
       } catch (error) {
         console.error("Error in fetchAppointments:", error);
-        // Return mock data
         return [
           { id: 1, patient: "John Doe", doctor: "Dr. Sarah Johnson", date: "2024-03-30", time: "10:00 AM", status: "Confirmed" },
           { id: 2, patient: "Michael Brown", doctor: "Dr. Robert Adams", date: "2024-03-29", time: "2:30 PM", status: "Cancelled" },
@@ -168,7 +164,6 @@ const Admin = () => {
     enabled: isAuthenticated && user?.role === 'admin'
   });
   
-  // Update ticket status
   const updateTicketStatus = (id: number, newStatus: Ticket["status"]) => {
     setTickets(tickets.map(ticket => 
       ticket.id === id ? { ...ticket, status: newStatus } : ticket
@@ -180,26 +175,19 @@ const Admin = () => {
     });
   };
   
-  // Filter users by search query
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.role.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
-  // User mutations
   const addUser = useMutation({
     mutationFn: async () => {
-      // In a real app, you would call your API to create a new user
-      // For now, we'll simulate it
       const newUserId = Math.random().toString(36).substring(2, 15);
       const createdUser = {
         id: newUserId,
         ...newUser
       };
-      
-      // You'd typically do something like:
-      // await supabase.auth.admin.createUser({...})
       
       return createdUser;
     },
@@ -221,8 +209,6 @@ const Admin = () => {
   
   const updateUser = useMutation({
     mutationFn: async (user: User) => {
-      // In a real app, you would call your API to update the user
-      // For now, we'll simulate it
       return user;
     },
     onSuccess: (updatedUser) => {
@@ -240,8 +226,6 @@ const Admin = () => {
   
   const deleteUser = useMutation({
     mutationFn: async (userId: string) => {
-      // In a real app, you would call your API to delete the user
-      // For now, we'll simulate it
       return userId;
     },
     onSuccess: (userId) => {
@@ -255,7 +239,6 @@ const Admin = () => {
     }
   });
   
-  // Dashboard stats
   const stats = {
     users: users.length,
     appointments: appointments.length,
@@ -263,13 +246,12 @@ const Admin = () => {
     bloodDonations: 86
   };
   
-  // Handle form input changes
   const handleUserFormChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (editingUser) {
       setEditingUser({ ...editingUser, [name]: value });
     } else {
-      setNewUser({ ...newUser, [name]: value });
+      setNewUser({ ...newUser, [name]: value } as typeof newUser);
     }
   };
   
@@ -281,11 +263,11 @@ const Admin = () => {
     }
   };
   
-  const handleStatusChange = (value: string) => {
+  const handleStatusChange = (value: "Active" | "Inactive") => {
     if (editingUser) {
-      setEditingUser({ ...editingUser, status: value as "Active" | "Inactive" });
+      setEditingUser({ ...editingUser, status: value });
     } else {
-      setNewUser({ ...newUser, status: value as "Active" | "Inactive" });
+      setNewUser({ ...newUser, status: value });
     }
   };
 
@@ -294,7 +276,6 @@ const Admin = () => {
       <div className="max-w-7xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold mb-8">Admin Dashboard</h1>
 
-        {/* Dashboard Overview Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <Card>
             <CardContent className="p-6 flex items-center space-x-4">
@@ -345,7 +326,6 @@ const Admin = () => {
           </Card>
         </div>
 
-        {/* Main Content with Tabs */}
         <Tabs defaultValue="users">
           <TabsList className="mb-8 grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
             <TabsTrigger value="users" className="flex items-center gap-2">
@@ -370,7 +350,6 @@ const Admin = () => {
             </TabsTrigger>
           </TabsList>
 
-          {/* Users Tab */}
           <TabsContent value="users">
             <Card>
               <CardHeader>
@@ -477,7 +456,6 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
-          {/* Support Tickets Tab */}
           <TabsContent value="tickets">
             <Card>
               <CardHeader>
@@ -547,7 +525,6 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
-          {/* Appointments Tab */}
           <TabsContent value="appointments">
             <Card>
               <CardHeader>
@@ -616,7 +593,6 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
-          {/* Analytics Tab - Placeholder */}
           <TabsContent value="analytics">
             <Card>
               <CardHeader>
@@ -636,7 +612,6 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
-          {/* Settings Tab - Placeholder */}
           <TabsContent value="settings">
             <Card>
               <CardHeader>
@@ -658,7 +633,6 @@ const Admin = () => {
         </Tabs>
       </div>
       
-      {/* Add User Dialog */}
       <Dialog open={isAddUserOpen} onOpenChange={setIsAddUserOpen}>
         <DialogContent>
           <DialogHeader>
@@ -701,7 +675,7 @@ const Admin = () => {
             </div>
             <div>
               <Label htmlFor="status">Status</Label>
-              <Select value={newUser.status} onValueChange={handleStatusChange}>
+              <Select value={newUser.status} onValueChange={handleStatusChange as (value: string) => void}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
@@ -721,7 +695,6 @@ const Admin = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Edit User Dialog */}
       <Dialog open={isEditUserOpen} onOpenChange={setIsEditUserOpen}>
         <DialogContent>
           <DialogHeader>
@@ -764,7 +737,10 @@ const Admin = () => {
             </div>
             <div>
               <Label htmlFor="edit-status">Status</Label>
-              <Select value={editingUser?.status || ""} onValueChange={handleStatusChange}>
+              <Select 
+                value={editingUser?.status || ""} 
+                onValueChange={handleStatusChange as (value: string) => void}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>

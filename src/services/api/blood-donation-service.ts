@@ -23,6 +23,16 @@ export interface BloodRequest {
   created_at?: string;
 }
 
+export interface BloodDonation {
+  id?: string;
+  user_id: string;
+  center_id: number;
+  center_name: string;
+  date: string;
+  time: string;
+  created_at?: string;
+}
+
 export class BloodDonationService {
   // Register a new blood donor
   async registerDonor(donorData: Omit<BloodDonor, "id" | "created_at">): Promise<BloodDonor | null> {
@@ -30,8 +40,7 @@ export class BloodDonationService {
       const { data, error } = await supabase
         .from('blood_donors')
         .insert([donorData])
-        .select()
-        .single();
+        .select();
       
       if (error) {
         console.error('Error registering donor:', error);
@@ -43,7 +52,7 @@ export class BloodDonationService {
         return null;
       }
       
-      return data as BloodDonor;
+      return data?.[0] as BloodDonor;
     } catch (error) {
       console.error('Error in registerDonor:', error);
       return null;
@@ -57,9 +66,9 @@ export class BloodDonationService {
         .from('blood_donors')
         .select('id')
         .eq('user_id', userId)
-        .single();
+        .maybeSingle();
       
-      if (error && error.code !== 'PGRST116') {
+      if (error) {
         console.error('Error checking donor status:', error);
         return false;
       }
@@ -72,13 +81,7 @@ export class BloodDonationService {
   }
 
   // Schedule a blood donation
-  async scheduleDonation(donation: {
-    user_id: string;
-    center_id: number;
-    center_name: string;
-    date: string;
-    time: string;
-  }): Promise<boolean> {
+  async scheduleDonation(donation: Omit<BloodDonation, "id" | "created_at">): Promise<boolean> {
     try {
       const { error } = await supabase
         .from('blood_donations')
