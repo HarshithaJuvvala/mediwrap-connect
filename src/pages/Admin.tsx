@@ -1,17 +1,21 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { User, Users, Calendar, ClipboardList, Activity, Settings2, Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight } from "lucide-react";
+import { Activity, Calendar, Search, Settings2, User, Users } from "lucide-react";
+
+// Import admin components
+import AnalyticsCards from "@/components/admin/AnalyticsCards";
+import RecentAppointments from "@/components/admin/RecentAppointments";
+import UserManagement from "@/components/admin/UserManagement";
+import AppointmentsManagement from "@/components/admin/AppointmentsManagement";
+import UserDialog from "@/components/admin/UserDialog";
+import AdminSettings from "@/components/admin/AdminSettings";
 
 interface User {
   id: string;
@@ -46,8 +50,6 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(5);
   
   // Data states
   const [users, setUsers] = useState<User[]>([]);
@@ -276,32 +278,17 @@ const Admin = () => {
     }
   };
 
-  // Pagination logic
-  const indexOfLastItem = currentPage * itemsPerPage;
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage;
-  
-  // Filter users based on search term
-  const filteredUsers = users.filter(
-    user => 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.role.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
-  const currentUsers = filteredUsers.slice(indexOfFirstItem, indexOfLastItem);
-  
-  // Filter appointments based on search term
-  const filteredAppointments = appointments.filter(
-    appointment => 
-      appointment.doctor_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.status.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-  
-  const currentAppointments = filteredAppointments.slice(indexOfFirstItem, indexOfLastItem);
-  
-  // Change page
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+  const handleAddNewUser = () => {
+    setSelectedUser(null);
+    setNewUser({
+      id: "",
+      name: "",
+      email: "",
+      role: "patient",
+      status: "Active"
+    });
+    setIsUserDialogOpen(true);
+  };
 
   return (
     <Layout>
@@ -347,504 +334,59 @@ const Admin = () => {
           </TabsList>
           
           <TabsContent value="dashboard" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                  <User className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{analyticsData.totalUsers}</div>
-                  <p className="text-xs text-muted-foreground">+2.5% from last month</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Registered Doctors</CardTitle>
-                  <Users className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{analyticsData.totalDoctors}</div>
-                  <p className="text-xs text-muted-foreground">+0.9% from last month</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Active Appointments</CardTitle>
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{analyticsData.activeAppointments}</div>
-                  <p className="text-xs text-muted-foreground">+18.1% from last month</p>
-                </CardContent>
-              </Card>
-              <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                  <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                  <Activity className="h-4 w-4 text-muted-foreground" />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">₹{analyticsData.totalRevenue.toLocaleString()}</div>
-                  <p className="text-xs text-muted-foreground">+7.4% from last month</p>
-                </CardContent>
-              </Card>
-            </div>
-            
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Appointments</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Doctor</TableHead>
-                      <TableHead>Patient</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Type</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {appointments.slice(0, 5).map((appointment) => (
-                      <TableRow key={appointment.id}>
-                        <TableCell>{appointment.doctor_name}</TableCell>
-                        <TableCell>{appointment.patient_name}</TableCell>
-                        <TableCell>{appointment.date}</TableCell>
-                        <TableCell>
-                          <span 
-                            className={`px-2 py-1 rounded-full text-xs ${
-                              appointment.status === 'confirmed' 
-                              ? 'bg-green-100 text-green-800' 
-                              : appointment.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : 'bg-red-100 text-red-800'
-                            }`}
-                          >
-                            {appointment.status}
-                          </span>
-                        </TableCell>
-                        <TableCell>
-                          <span 
-                            className={`px-2 py-1 rounded-full text-xs ${
-                              appointment.type === 'video' 
-                              ? 'bg-blue-100 text-blue-800' 
-                              : 'bg-purple-100 text-purple-800'
-                            }`}
-                          >
-                            {appointment.type}
-                          </span>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
+            <AnalyticsCards analyticsData={analyticsData} />
+            <RecentAppointments appointments={appointments} />
           </TabsContent>
           
           <TabsContent value="users" className="space-y-4">
-            <div className="flex justify-between mb-4">
-              <h2 className="text-xl font-semibold">Manage Users</h2>
-              <Button 
-                onClick={() => {
-                  setSelectedUser(null);
-                  setNewUser({
-                    id: "",
-                    name: "",
-                    email: "",
-                    role: "patient",
-                    status: "Active"
-                  });
-                  setIsUserDialogOpen(true);
-                }}
-                className="flex items-center"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add User
-              </Button>
-            </div>
-            
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Name</TableHead>
-                      <TableHead>Email</TableHead>
-                      <TableHead>Role</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {currentUsers.length > 0 ? (
-                      currentUsers.map((user) => (
-                        <TableRow key={user.id}>
-                          <TableCell>{user.name}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
-                            <span 
-                              className={`px-2 py-1 rounded-full text-xs ${
-                                user.role === 'admin' 
-                                ? 'bg-purple-100 text-purple-800' 
-                                : user.role === 'doctor'
-                                ? 'bg-blue-100 text-blue-800'
-                                : 'bg-green-100 text-green-800'
-                              }`}
-                            >
-                              {user.role}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span 
-                              className={`px-2 py-1 rounded-full text-xs ${
-                                user.status === 'Active' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-red-100 text-red-800'
-                              }`}
-                            >
-                              {user.status}
-                            </span>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => handleEditUser(user)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="icon"
-                              onClick={() => handleDeleteUser(user.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-4">
-                          No users found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-                
-                {/* Pagination */}
-                {filteredUsers.length > itemsPerPage && (
-                  <div className="flex justify-center p-4">
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        disabled={currentPage === 1}
-                        onClick={() => paginate(currentPage - 1)}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      {Array.from({ length: Math.ceil(filteredUsers.length / itemsPerPage) }, (_, i) => (
-                        <Button
-                          key={i + 1}
-                          variant={currentPage === i + 1 ? 'default' : 'outline'}
-                          onClick={() => paginate(i + 1)}
-                          className="w-8 h-8 p-0"
-                        >
-                          {i + 1}
-                        </Button>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        disabled={currentPage === Math.ceil(filteredUsers.length / itemsPerPage)}
-                        onClick={() => paginate(currentPage + 1)}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <UserManagement 
+              users={users} 
+              handleAddUser={handleAddNewUser}
+              handleEditUser={handleEditUser}
+              handleDeleteUser={handleDeleteUser}
+            />
           </TabsContent>
           
           <TabsContent value="doctors" className="space-y-4">
             <div className="flex justify-between mb-4">
               <h2 className="text-xl font-semibold">Manage Doctors</h2>
-              <Button onClick={() => navigate('/doctor-registration')}>Add Doctor</Button>
+              <button 
+                onClick={() => navigate('/doctor-registration')} 
+                className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md"
+              >
+                Add Doctor
+              </button>
             </div>
             
-            <Card>
-              <CardContent>
-                <p className="text-center py-8 text-muted-foreground">
-                  Doctor management interface under development. 
-                  Use the Doctor Registration page to add new doctors.
-                </p>
-              </CardContent>
-            </Card>
+            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-8">
+              <p className="text-center py-8 text-muted-foreground">
+                Doctor management interface under development. 
+                Use the Doctor Registration page to add new doctors.
+              </p>
+            </div>
           </TabsContent>
           
           <TabsContent value="appointments" className="space-y-4">
-            <div className="flex justify-between mb-4">
-              <h2 className="text-xl font-semibold">Manage Appointments</h2>
-            </div>
-            
-            <Card>
-              <CardContent className="p-0">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Doctor</TableHead>
-                      <TableHead>Patient</TableHead>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Time</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead>Type</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {currentAppointments.length > 0 ? (
-                      currentAppointments.map((appointment) => (
-                        <TableRow key={appointment.id}>
-                          <TableCell>{appointment.doctor_name}</TableCell>
-                          <TableCell>{appointment.patient_name}</TableCell>
-                          <TableCell>{appointment.date}</TableCell>
-                          <TableCell>{appointment.time}</TableCell>
-                          <TableCell>
-                            <span 
-                              className={`px-2 py-1 rounded-full text-xs ${
-                                appointment.status === 'confirmed' 
-                                ? 'bg-green-100 text-green-800' 
-                                : appointment.status === 'pending'
-                                ? 'bg-yellow-100 text-yellow-800'
-                                : 'bg-red-100 text-red-800'
-                              }`}
-                            >
-                              {appointment.status}
-                            </span>
-                          </TableCell>
-                          <TableCell>
-                            <span 
-                              className={`px-2 py-1 rounded-full text-xs ${
-                                appointment.type === 'video' 
-                                ? 'bg-blue-100 text-blue-800' 
-                                : 'bg-purple-100 text-purple-800'
-                              }`}
-                            >
-                              {appointment.type}
-                            </span>
-                          </TableCell>
-                        </TableRow>
-                      ))
-                    ) : (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-4">
-                          No appointments found
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-                
-                {/* Pagination */}
-                {filteredAppointments.length > itemsPerPage && (
-                  <div className="flex justify-center p-4">
-                    <div className="flex space-x-2">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        disabled={currentPage === 1}
-                        onClick={() => paginate(currentPage - 1)}
-                      >
-                        <ChevronLeft className="h-4 w-4" />
-                      </Button>
-                      {Array.from({ length: Math.ceil(filteredAppointments.length / itemsPerPage) }, (_, i) => (
-                        <Button
-                          key={i + 1}
-                          variant={currentPage === i + 1 ? 'default' : 'outline'}
-                          onClick={() => paginate(i + 1)}
-                          className="w-8 h-8 p-0"
-                        >
-                          {i + 1}
-                        </Button>
-                      ))}
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        disabled={currentPage === Math.ceil(filteredAppointments.length / itemsPerPage)}
-                        onClick={() => paginate(currentPage + 1)}
-                      >
-                        <ChevronRight className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+            <AppointmentsManagement appointments={appointments} searchTerm={searchTerm} />
           </TabsContent>
           
           <TabsContent value="settings" className="space-y-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>Application Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  <div>
-                    <label className="font-medium">Region</label>
-                    <Select defaultValue="india">
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select region" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="india">India</SelectItem>
-                        <SelectItem value="usa">United States</SelectItem>
-                        <SelectItem value="uk">United Kingdom</SelectItem>
-                        <SelectItem value="au">Australia</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="font-medium">Currency</label>
-                    <Select defaultValue="inr">
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select currency" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="inr">Indian Rupee (₹)</SelectItem>
-                        <SelectItem value="usd">US Dollar ($)</SelectItem>
-                        <SelectItem value="gbp">British Pound (£)</SelectItem>
-                        <SelectItem value="eur">Euro (€)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <label className="font-medium">Default Language</label>
-                    <Select defaultValue="en-IN">
-                      <SelectTrigger className="mt-1">
-                        <SelectValue placeholder="Select language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="en-IN">English (India)</SelectItem>
-                        <SelectItem value="hi">Hindi</SelectItem>
-                        <SelectItem value="te">Telugu</SelectItem>
-                        <SelectItem value="ta">Tamil</SelectItem>
-                        <SelectItem value="bn">Bengali</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <Button className="mt-4">Save Settings</Button>
-                </div>
-              </CardContent>
-            </Card>
+            <AdminSettings />
           </TabsContent>
         </Tabs>
       </div>
       
       {/* User Dialog */}
-      <Dialog open={isUserDialogOpen} onOpenChange={setIsUserDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>
-              {selectedUser ? "Edit User" : "Add New User"}
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="name" className="text-right">
-                Name
-              </label>
-              <Input
-                id="name"
-                value={selectedUser ? selectedUser.name : newUser.name}
-                onChange={(e) => 
-                  selectedUser 
-                    ? setSelectedUser({...selectedUser, name: e.target.value})
-                    : setNewUser({...newUser, name: e.target.value})
-                }
-                className="col-span-3"
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="email" className="text-right">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                value={selectedUser ? selectedUser.email : newUser.email}
-                onChange={(e) => 
-                  selectedUser 
-                    ? setSelectedUser({...selectedUser, email: e.target.value})
-                    : setNewUser({...newUser, email: e.target.value})
-                }
-                className="col-span-3"
-              />
-            </div>
-            
-            <div className="grid grid-cols-4 items-center gap-4">
-              <label htmlFor="role" className="text-right">
-                Role
-              </label>
-              <Select
-                value={selectedUser ? selectedUser.role : newUser.role}
-                onValueChange={(value) => 
-                  selectedUser 
-                    ? setSelectedUser({...selectedUser, role: value})
-                    : setNewUser({...newUser, role: value})
-                }
-              >
-                <SelectTrigger className="col-span-3">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="doctor">Doctor</SelectItem>
-                  <SelectItem value="patient">Patient</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {selectedUser && (
-              <div className="grid grid-cols-4 items-center gap-4">
-                <label htmlFor="status" className="text-right">
-                  Status
-                </label>
-                <Select
-                  value={selectedUser.status}
-                  onValueChange={(value: "Active" | "Inactive") => 
-                    setSelectedUser({...selectedUser, status: value})
-                  }
-                >
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Active">Active</SelectItem>
-                    <SelectItem value="Inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsUserDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={selectedUser ? handleUpdateUser : handleAddUser}>
-              {selectedUser ? "Update" : "Add"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <UserDialog
+        isOpen={isUserDialogOpen}
+        onOpenChange={setIsUserDialogOpen}
+        selectedUser={selectedUser}
+        newUser={newUser}
+        onSelectedUserChange={setSelectedUser}
+        onNewUserChange={setNewUser}
+        onAddUser={handleAddUser}
+        onUpdateUser={handleUpdateUser}
+      />
     </Layout>
   );
 };

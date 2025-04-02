@@ -6,13 +6,21 @@ interface DoctorListProps {
   filteredDoctors: Doctor[];
   isLoading: boolean;
   onBookAppointment: (doctorId: string, doctorName: string, type: string) => void;
+  emptyMessage?: string;
+  loadingMessage?: string;
 }
 
-const DoctorList = ({ filteredDoctors, isLoading, onBookAppointment }: DoctorListProps) => {
+const DoctorList = ({ 
+  filteredDoctors, 
+  isLoading, 
+  onBookAppointment,
+  emptyMessage = "No doctors found matching your criteria.",
+  loadingMessage = "Loading doctors..."
+}: DoctorListProps) => {
   if (isLoading) {
     return (
       <div className="text-center py-16">
-        <p className="text-xl text-gray-500 dark:text-gray-400">Loading doctors...</p>
+        <p className="text-xl text-gray-500 dark:text-gray-400">{loadingMessage}</p>
       </div>
     );
   }
@@ -20,7 +28,7 @@ const DoctorList = ({ filteredDoctors, isLoading, onBookAppointment }: DoctorLis
   if (filteredDoctors.length === 0) {
     return (
       <div className="text-center py-16">
-        <p className="text-xl text-gray-500 dark:text-gray-400">No doctors found matching your criteria.</p>
+        <p className="text-xl text-gray-500 dark:text-gray-400">{emptyMessage}</p>
       </div>
     );
   }
