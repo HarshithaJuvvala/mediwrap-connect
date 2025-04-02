@@ -88,16 +88,16 @@ const Consultation = () => {
   const [consultationType, setConsultationType] = useState("all");
   const { toast } = useToast();
   
-  // Fixed useQuery hook to use onError inside of meta or use onSettled
+  // Fixed useQuery hook without using onSettled which is causing the error
   const { data: fetchedDoctors = [], isLoading, error, refetch } = useQuery({
     queryKey: ['doctors'],
     queryFn: () => apiClient.getDoctors(),
-    onSettled: (data, error) => {
-      if (error) {
-        console.error("Error fetching doctors:", error);
-      }
+    // Proper error handling
+    onError: (err) => {
+      console.error("Error fetching doctors:", err);
     },
-    initialData: indianDoctors // Use mock data as initial data
+    // Correct way to provide initialData
+    initialData: () => indianDoctors
   });
 
   // If fetched doctors list is empty, use the mock data
