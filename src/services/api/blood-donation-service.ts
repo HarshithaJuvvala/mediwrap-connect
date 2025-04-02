@@ -40,7 +40,7 @@ export class BloodDonationService {
       // Use typed supabase calls to avoid type errors
       const { data, error } = await supabase
         .from('blood_donors')
-        .insert(donorData)
+        .insert([donorData])
         .select();
       
       if (error) {
@@ -53,8 +53,7 @@ export class BloodDonationService {
         return null;
       }
       
-      // Use type assertion to convert the data to BloodDonor
-      return data?.[0] as unknown as BloodDonor;
+      return data?.[0] as BloodDonor;
     } catch (error) {
       console.error('Error in registerDonor:', error);
       return null;
@@ -87,7 +86,7 @@ export class BloodDonationService {
     try {
       const { error } = await supabase
         .from('blood_donations')
-        .insert(donation);
+        .insert([donation]);
       
       if (error) {
         console.error('Error scheduling donation:', error);
@@ -120,8 +119,7 @@ export class BloodDonationService {
         return [];
       }
       
-      // Use type assertion to ensure return type is correct
-      return data as unknown as BloodDonation[];
+      return data as BloodDonation[];
     } catch (error) {
       console.error('Error in getUserDonations:', error);
       return [];

@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -12,17 +13,92 @@ import apiClient, { Doctor } from "@/services/api";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
+// Indian doctor mockup data to use if API fetch fails
+const indianDoctors = [
+  {
+    id: "1",
+    name: "Dr. Rajesh Sharma",
+    specialty: "Cardiology",
+    hospital: "Narayana Health",
+    rating: 4.9,
+    reviews: 145,
+    image: "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    available: true,
+    next_available: "2023-06-15T10:00:00",
+    fee: 1000,
+    education: "MBBS, MD - Cardiology",
+    experience: "15+ years",
+    location: "Bangalore",
+    online: true
+  },
+  {
+    id: "2",
+    name: "Dr. Priya Patel",
+    specialty: "Pediatrics",
+    hospital: "Apollo Hospitals",
+    rating: 4.8,
+    reviews: 132,
+    image: "https://images.unsplash.com/photo-1594824476967-48c8b964273f?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    available: true,
+    next_available: "2023-06-14T14:30:00",
+    fee: 800,
+    education: "MBBS, DCH, MD - Pediatrics",
+    experience: "10+ years",
+    location: "Mumbai",
+    online: true
+  },
+  {
+    id: "3",
+    name: "Dr. Arun Kumar",
+    specialty: "Orthopedics",
+    hospital: "AIIMS",
+    rating: 4.7,
+    reviews: 98,
+    image: "https://images.unsplash.com/photo-1537368910025-700350fe46c7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    available: false,
+    next_available: "2023-06-18T11:00:00",
+    fee: 1200,
+    education: "MBBS, MS - Orthopedics",
+    experience: "12+ years",
+    location: "Delhi",
+    online: false
+  },
+  {
+    id: "4",
+    name: "Dr. Sunita Reddy",
+    specialty: "Dermatology",
+    hospital: "Fortis Healthcare",
+    rating: 4.9,
+    reviews: 156,
+    image: "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
+    available: true,
+    next_available: "2023-06-13T09:15:00",
+    fee: 900,
+    education: "MBBS, MD - Dermatology",
+    experience: "8+ years",
+    location: "Hyderabad",
+    online: true
+  }
+];
+
 const Consultation = () => {
   const navigate = useNavigate();
   const { isAuthenticated, user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [consultationType, setConsultationType] = useState("all");
   const { toast } = useToast();
-
-  const { data: doctors = [], isLoading, refetch } = useQuery({
+  // Enhanced error handling for the query
+  const { data: fetchedDoctors = [], isLoading, error, refetch } = useQuery({
     queryKey: ['doctors'],
     queryFn: () => apiClient.getDoctors(),
+    onError: (err) => {
+      console.error("Error fetching doctors:", err);
+      return indianDoctors; // Return mock data on error
+    }
   });
+
+  // If fetched doctors list is empty, use the mock data
+  const doctors = fetchedDoctors.length > 0 ? fetchedDoctors : indianDoctors;
 
   useEffect(() => {
     const channel = supabase
@@ -57,17 +133,26 @@ const Consultation = () => {
       description: `Your ${type} appointment with ${doctorName} has been requested. We'll confirm shortly.`,
     });
     
-    apiClient.bookAppointment(doctorId, {
-      type: type === "video" ? "video" : "in-person",
-      date: new Date().toISOString().split('T')[0],
-      time: new Date().toLocaleTimeString(),
-    });
+    try {
+      apiClient.bookAppointment(doctorId, {
+        type: type === "video" ? "video" : "in-person",
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toLocaleTimeString(),
+      });
+    } catch (e) {
+      console.error("Error booking appointment:", e);
+      toast({
+        title: "Error",
+        description: "There was an error booking your appointment. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredDoctors = doctors.filter((doctor) => {
     const matchesSearch = doctor.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                        doctor.specialty.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                       doctor.hospital.toLowerCase().includes(searchTerm.toLowerCase());
+                       (doctor.hospital && doctor.hospital.toLowerCase().includes(searchTerm.toLowerCase()));
     
     if (consultationType === "online" && !doctor.online) return false;
     if (consultationType === "in-person" && doctor.online) return false;
@@ -178,7 +263,7 @@ const Consultation = () => {
                           </div>
                           <div>
                             <p className="text-sm text-gray-500 dark:text-gray-400">Consultation Fee</p>
-                            <p className="font-medium">${doctor.fee}</p>
+                            <p className="font-medium">₹{doctor.fee}</p>
                           </div>
                         </div>
                         

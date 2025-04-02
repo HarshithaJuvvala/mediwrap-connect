@@ -97,7 +97,7 @@ const Admin = () => {
       // Calculate approximate revenue (for demo purposes)
       let revenue = 0;
       if (appointmentsData) {
-        revenue = appointmentsData.length * 50; // Assuming $50 per appointment
+        revenue = appointmentsData.length * 50; // Assuming ₹50 per appointment
       }
       
       setAnalyticsData({
@@ -142,7 +142,7 @@ const Admin = () => {
       }
       
       // Get doctor and patient names
-      const enhancedAppointments = await Promise.all(
+      const enhancedAppointments: Appointment[] = await Promise.all(
         appointmentsWithDetails?.map(async appointment => {
           // Get doctor name
           const { data: doctorData } = await supabase
@@ -211,13 +211,7 @@ const Admin = () => {
   };
 
   const handleEditUser = (user: User) => {
-    setSelectedUser({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      status: user.status as "Active" | "Inactive"
-    });
+    setSelectedUser({...user});
     setIsUserDialogOpen(true);
   };
 

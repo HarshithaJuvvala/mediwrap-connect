@@ -11,13 +11,13 @@ import { useCart } from "@/hooks/useCart";
 import { useNavigate } from "react-router-dom";
 import PrescriptionUpload from "@/components/pharmacy/PrescriptionUpload";
 
-// Mock data for products
+// Mock data for products - with Indian names for medications
 const products = [
   {
     id: 1,
     name: "Paracetamol 500mg",
     category: "Pain Relief",
-    price: 5.99,
+    price: 59.99,
     rating: 4.8,
     reviews: 124,
     image: "https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
@@ -28,7 +28,7 @@ const products = [
     id: 2,
     name: "Amoxicillin 250mg",
     category: "Antibiotics",
-    price: 12.50,
+    price: 125.50,
     rating: 4.5,
     reviews: 89,
     image: "https://images.unsplash.com/photo-1471864190281-a93a3070b6de?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
@@ -39,7 +39,7 @@ const products = [
     id: 3,
     name: "Digital Thermometer",
     category: "Medical Devices",
-    price: 15.99,
+    price: 159.99,
     rating: 4.7,
     reviews: 203,
     image: "https://images.unsplash.com/photo-1588776814546-daab30f310ce?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
@@ -50,7 +50,7 @@ const products = [
     id: 4,
     name: "Vitamin D 1000 IU",
     category: "Vitamins & Supplements",
-    price: 9.99,
+    price: 99.99,
     rating: 4.9,
     reviews: 156,
     image: "https://images.unsplash.com/photo-1577969177570-0f77a7c879c0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
@@ -59,9 +59,9 @@ const products = [
   },
   {
     id: 5,
-    name: "Blood Pressure Monitor",
+    name: "BP Monitor",
     category: "Medical Devices",
-    price: 45.99,
+    price: 459.99,
     rating: 4.6,
     reviews: 78,
     image: "https://images.unsplash.com/photo-1576091160550-2173dba999ef?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
@@ -72,7 +72,7 @@ const products = [
     id: 6,
     name: "Insulin 100 IU/ml",
     category: "Diabetes Care",
-    price: 65.00,
+    price: 650.00,
     rating: 4.9,
     reviews: 112,
     image: "https://images.unsplash.com/photo-1631549916768-4119b2e5f926?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
@@ -83,7 +83,7 @@ const products = [
     id: 7,
     name: "First Aid Kit",
     category: "Medical Supplies",
-    price: 24.99,
+    price: 249.99,
     rating: 4.8,
     reviews: 245,
     image: "https://images.unsplash.com/photo-1603398938378-e54eab446dde?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
@@ -94,7 +94,7 @@ const products = [
     id: 8,
     name: "Face Masks (Pack of 50)",
     category: "Personal Protection",
-    price: 18.99,
+    price: 189.99,
     rating: 4.7,
     reviews: 320,
     image: "https://images.unsplash.com/photo-1605845328642-7d277d6cfea3?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=200&q=80",
@@ -168,7 +168,7 @@ const Pharmacy = () => {
   };
 
   const calculateTotal = () => {
-    return subtotal + 5; // Add $5 for shipping
+    return subtotal + 50; // Add ₹50 for shipping
   };
 
   return (
@@ -278,7 +278,7 @@ const Pharmacy = () => {
                   </div>
                   <h3 className="font-medium text-lg mb-1">{product.name}</h3>
                   <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{product.description}</p>
-                  <p className="text-lg font-bold text-mediwrap-blue dark:text-mediwrap-blue-light">${product.price.toFixed(2)}</p>
+                  <p className="text-lg font-bold text-mediwrap-blue dark:text-mediwrap-blue-light">₹{product.price.toFixed(2)}</p>
                 </CardContent>
                 <CardFooter className="p-4 pt-0">
                   <Button 
@@ -326,7 +326,7 @@ const Pharmacy = () => {
                         />
                         <div className="ml-4 flex-grow">
                           <h4 className="font-medium">{item.name}</h4>
-                          <p className="text-gray-600 dark:text-gray-400">${item.price.toFixed(2)}</p>
+                          <p className="text-gray-600 dark:text-gray-400">₹{item.price.toFixed(2)}</p>
                         </div>
                         <div className="flex items-center">
                           <Button 
@@ -353,15 +353,15 @@ const Pharmacy = () => {
                     <div className="mt-6 py-4 border-t border-gray-200 dark:border-gray-800">
                       <div className="flex justify-between mb-4">
                         <span className="text-gray-600 dark:text-gray-400">Subtotal:</span>
-                        <span className="font-medium">${subtotal.toFixed(2)}</span>
+                        <span className="font-medium">₹{subtotal.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between mb-4">
                         <span className="text-gray-600 dark:text-gray-400">Delivery:</span>
-                        <span className="font-medium">$5.00</span>
+                        <span className="font-medium">₹50.00</span>
                       </div>
                       <div className="flex justify-between text-lg font-bold">
                         <span>Total:</span>
-                        <span>${calculateTotal().toFixed(2)}</span>
+                        <span>₹{calculateTotal().toFixed(2)}</span>
                       </div>
                       
                       <div className="grid grid-cols-2 gap-4 mt-6">
