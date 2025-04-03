@@ -3,9 +3,10 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/hooks/useAuth";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/hooks/useAuth";
 import { CartProvider } from "@/hooks/useCart";
+import { Suspense, lazy } from "react";
 
 // Pages
 import Index from "./pages/Index";
@@ -31,6 +32,65 @@ const queryClient = new QueryClient({
   },
 });
 
+// Protected Route component
+const ProtectedRoute = ({ 
+  element, 
+  requiredRole, 
+  redirectPath = "/login" 
+}: { 
+  element: JSX.Element, 
+  requiredRole?: "admin" | "doctor" | "patient", 
+  redirectPath?: string 
+}) => {
+  const { isAuthenticated, user, isLoading } = useAuth();
+
+  // Show loading while checking authentication
+  if (isLoading) {
+    return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
+  }
+
+  // If not authenticated, redirect to login
+  if (!isAuthenticated) {
+    return <Navigate to={`${redirectPath}`} />;
+  }
+
+  // If role is required but user doesn't have it
+  if (requiredRole && user?.role !== requiredRole) {
+    // Handle specifically for admin
+    if (requiredRole === 'admin') {
+      return <Admin />;
+    }
+    
+    // For doctor
+    if (requiredRole === 'doctor') {
+      return <Navigate to="/doctor-registration" />;
+    }
+    
+    // Default case
+    return <Navigate to="/" />;
+  }
+
+  return element;
+};
+
+const AppRoutes = () => (
+  <Routes>
+    <Route path="/" element={<Index />} />
+    <Route path="/consultation" element={<Consultation />} />
+    <Route path="/pharmacy" element={<Pharmacy />} />
+    <Route path="/blood-donation" element={<BloodDonation />} />
+    <Route path="/community" element={<Community />} />
+    <Route path="/cart" element={<Cart />} />
+    <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
+    <Route path="/login" element={<Login />} />
+    <Route path="/admin" element={<Admin />} />
+    <Route path="/doctor-panel" element={<ProtectedRoute element={<DoctorPanel />} requiredRole="doctor" />} />
+    <Route path="/doctor-registration" element={<DoctorRegistration />} />
+    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+    <Route path="*" element={<NotFound />} />
+  </Routes>
+);
+
 const App = () => (
   <BrowserRouter>
     <QueryClientProvider client={queryClient}>
@@ -39,21 +99,7 @@ const App = () => (
           <TooltipProvider>
             <Toaster />
             <Sonner />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/consultation" element={<Consultation />} />
-              <Route path="/pharmacy" element={<Pharmacy />} />
-              <Route path="/blood-donation" element={<BloodDonation />} />
-              <Route path="/community" element={<Community />} />
-              <Route path="/cart" element={<Cart />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/admin" element={<Admin />} />
-              <Route path="/doctor-panel" element={<DoctorPanel />} />
-              <Route path="/doctor-registration" element={<DoctorRegistration />} />
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <AppRoutes />
           </TooltipProvider>
         </CartProvider>
       </AuthProvider>

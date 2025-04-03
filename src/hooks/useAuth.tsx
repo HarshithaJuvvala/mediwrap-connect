@@ -37,6 +37,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         const userData = session.user.user_metadata;
+        console.log("Auth session found:", userData);
         setUser({
           id: session.user.id,
           email: session.user.email || "",
@@ -46,7 +47,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: userData?.role || "patient",
         });
         setIsAuthenticated(true);
-        console.log("Auth session found:", userData);
       } else {
         console.log("No auth session found");
       }
@@ -56,10 +56,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for changes on auth state (sign in, sign out, etc.)
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.info("Auth state changed:", event);
+        console.log("Auth state changed:", event);
         if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
           if (session) {
             const userData = session.user.user_metadata;
+            console.log("User signed in:", userData);
             setUser({
               id: session.user.id,
               email: session.user.email || "",
@@ -69,7 +70,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               role: userData?.role || "patient",
             });
             setIsAuthenticated(true);
-            console.log("User signed in:", userData);
           }
         } else if (event === "SIGNED_OUT") {
           setUser(null);
@@ -78,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         } else if (event === "USER_UPDATED") {
           if (session) {
             const userData = session.user.user_metadata;
+            console.log("User updated:", userData);
             setUser({
               id: session.user.id,
               email: session.user.email || "",
@@ -86,7 +87,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               location: userData?.location || "India",
               role: userData?.role || "patient",
             });
-            console.log("User updated:", userData);
           }
         }
       }
@@ -131,7 +131,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         toast({
           title: "Welcome back!",
-          description: "You have successfully logged in.",
+          description: `You've successfully logged in as ${userData?.role || "patient"}.`,
         });
       }
     } catch (error) {
@@ -172,7 +172,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (data && data.user) {
         toast({
           title: "Registration successful",
-          description: "Your account has been created.",
+          description: `Your ${role} account has been created.`,
         });
       }
     } catch (error) {
@@ -260,6 +260,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         };
         
         setUser(updatedUser);
+        
+        toast({
+          title: "Profile updated",
+          description: "Your profile has been successfully updated.",
+        });
+        
         return updatedUser;
       }
       
@@ -272,7 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Set user role (new function to easily change user role)
+  // Set user role (function to easily change user role)
   const setUserRole = async (role: "patient" | "doctor" | "admin"): Promise<void> => {
     try {
       setIsLoading(true);

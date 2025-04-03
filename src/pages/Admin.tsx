@@ -1,13 +1,15 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Activity, Calendar, Search, Settings2, User, Users } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 // Import admin components
 import AnalyticsCards from "@/components/admin/AnalyticsCards";
@@ -74,14 +76,6 @@ const Admin = () => {
   useEffect(() => {
     // Load the data immediately without checking authentication first
     fetchData();
-    
-    // Show toast for non-admin users but don't block access in development mode
-    if (user && user.role !== 'admin' && isDevelopmentMode) {
-      toast({
-        title: "Not an admin",
-        description: "Click 'Become Admin' to grant yourself admin privileges for testing",
-      });
-    }
   }, [user]);
 
   const fetchData = async () => {
@@ -317,13 +311,50 @@ const Admin = () => {
     setIsUserDialogOpen(true);
   };
 
-  // If still checking authentication, show loading
-  if (!isAuthenticated && !user) {
+  // Show authorization message if not an admin
+  if (isAuthenticated && user && user.role !== 'admin') {
     return (
       <Layout>
         <div className="container mx-auto px-4 py-12">
-          <div className="text-center">
-            <p className="text-xl text-gray-500 dark:text-gray-400">Loading admin dashboard...</p>
+          <Alert className="mb-6 border-amber-500">
+            <AlertTitle className="text-amber-500">Admin Access Required</AlertTitle>
+            <AlertDescription>
+              You need admin privileges to access this page. Click the button below to gain admin access for testing.
+            </AlertDescription>
+          </Alert>
+          
+          <div className="flex justify-center">
+            <Button 
+              onClick={handleBecomeAdmin}
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              Become Admin (Development Mode)
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  // If not authenticated, redirect to login
+  if (!isAuthenticated) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12">
+          <Alert className="mb-6 border-red-500">
+            <AlertTitle className="text-red-500">Authentication Required</AlertTitle>
+            <AlertDescription>
+              You need to login before accessing the admin panel.
+            </AlertDescription>
+          </Alert>
+          
+          <div className="flex justify-center">
+            <Button 
+              onClick={() => navigate('/login')}
+              className="bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              Go to Login
+            </Button>
           </div>
         </div>
       </Layout>
@@ -336,14 +367,12 @@ const Admin = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <h1 className="text-3xl font-bold mb-4 md:mb-0">Admin Dashboard</h1>
           <div className="flex space-x-2 w-full md:w-auto">
-            {user && (
-              <Button 
-                onClick={handleBecomeAdmin}
-                className="bg-amber-500 hover:bg-amber-600 text-white"
-              >
-                {user.role === 'admin' ? 'Refresh Admin Status' : 'Become Admin (Dev Mode)'}
-              </Button>
-            )}
+            <Button 
+              onClick={handleBecomeAdmin}
+              className="bg-amber-500 hover:bg-amber-600 text-white"
+            >
+              Refresh Admin Status
+            </Button>
             <Input
               type="text"
               placeholder="Search..."

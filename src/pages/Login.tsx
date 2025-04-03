@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Eye, EyeOff } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 const Login = () => {
   const [activeTab, setActiveTab] = useState('login');
@@ -17,6 +18,7 @@ const Login = () => {
   const [name, setName] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('patient');
   
   const { login, register, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
@@ -33,9 +35,23 @@ const Login = () => {
       if (user?.role === 'admin') {
         toast({
           title: "Admin logged in",
-          description: "Welcome back admin!",
+          description: "Welcome back admin! You can access the admin panel from the navbar.",
         });
+        navigate('/admin');
+        return;
       }
+      
+      // If user is doctor, redirect to doctor panel
+      if (user?.role === 'doctor') {
+        toast({
+          title: "Doctor logged in",
+          description: "Welcome back doctor! You can access your panel from the navbar.",
+        });
+        navigate('/doctor-panel');
+        return;
+      }
+      
+      // Default redirect
       navigate(from);
     }
   }, [isAuthenticated, navigate, user, from]);
@@ -79,10 +95,10 @@ const Login = () => {
     setLoading(true);
     
     try {
-      await register(email, password, name, "patient");
+      await register(email, password, name, selectedRole);
       toast({
         title: "Registration successful",
-        description: "Please sign in with your new account",
+        description: `Please sign in with your new ${selectedRole} account`,
       });
       setActiveTab('login');
     } catch (error) {
@@ -93,6 +109,24 @@ const Login = () => {
   };
 
   const togglePasswordVisibility = () => setShowPassword(!showPassword);
+
+  // Demo accounts for testing
+  const demoAccounts = [
+    { email: "admin@example.com", password: "password123", role: "admin" },
+    { email: "doctor@example.com", password: "password123", role: "doctor" },
+    { email: "patient@example.com", password: "password123", role: "patient" }
+  ];
+
+  const loginAsDemoUser = async (demoUser: {email: string, password: string, role: string}) => {
+    setLoading(true);
+    try {
+      await login(demoUser.email, demoUser.password);
+    } catch (err) {
+      console.error('Demo login error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Layout>
@@ -151,10 +185,31 @@ const Login = () => {
                   </div>
                 </CardContent>
                 
-                <CardFooter>
+                <CardFooter className="flex flex-col gap-4">
                   <Button className="w-full" type="submit" disabled={loading}>
                     {loading ? "Signing in..." : "Sign In"}
                   </Button>
+                  
+                  <div className="w-full">
+                    <p className="text-center text-sm text-gray-500 mb-2">For testing, login as:</p>
+                    <div className="flex flex-wrap justify-center gap-2">
+                      {demoAccounts.map((account) => (
+                        <Button 
+                          key={account.role}
+                          variant="outline" 
+                          size="sm"
+                          disabled={loading}
+                          onClick={() => loginAsDemoUser(account)}
+                          className="flex items-center gap-1"
+                        >
+                          {account.role}
+                          <Badge variant="outline" className="ml-1 text-xs">
+                            {account.email}
+                          </Badge>
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
                 </CardFooter>
               </form>
             </TabsContent>
@@ -207,6 +262,36 @@ const Login = () => {
                     <p className="text-sm text-gray-500">
                       Password must be at least 6 characters
                     </p>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Register as</label>
+                    <div className="flex space-x-2">
+                      <Button
+                        type="button"
+                        variant={selectedRole === 'patient' ? 'default' : 'outline'}
+                        onClick={() => setSelectedRole('patient')}
+                        className="flex-1"
+                      >
+                        Patient
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={selectedRole === 'doctor' ? 'default' : 'outline'}
+                        onClick={() => setSelectedRole('doctor')}
+                        className="flex-1"
+                      >
+                        Doctor
+                      </Button>
+                      <Button
+                        type="button"
+                        variant={selectedRole === 'admin' ? 'default' : 'outline'}
+                        onClick={() => setSelectedRole('admin')}
+                        className="flex-1"
+                      >
+                        Admin
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
                 
