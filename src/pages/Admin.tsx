@@ -73,6 +73,11 @@ const Admin = () => {
   });
 
   useEffect(() => {
+    console.log("Admin page loaded");
+    console.log("Auth state:", { isAuthenticated, user });
+  }, [isAuthenticated, user]);
+
+  useEffect(() => {
     // Load the data immediately without checking authentication first
     fetchData();
   }, [user]);

@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -51,23 +50,21 @@ const ProtectedRoute = ({
 
   // If not authenticated, redirect to login
   if (!isAuthenticated) {
-    return <Navigate to={`${redirectPath}`} />;
+    return <Navigate to={redirectPath} />;
   }
 
-  // If role is required but user doesn't have it
+  // If role is required but user doesn't have it, handle appropriately
   if (requiredRole && user?.role !== requiredRole) {
-    // Handle specifically for admin
-    if (requiredRole === 'admin') {
-      return <Admin />;
-    }
-    
-    // For doctor
-    if (requiredRole === 'doctor') {
+    if (requiredRole === 'admin' && user) {
+      // For admin pages, let the Admin component handle the role check internally
+      return element;
+    } else if (requiredRole === 'doctor' && user) {
+      // For doctor pages, redirect to registration if not a doctor
       return <Navigate to="/doctor-registration" />;
+    } else {
+      // Default case, redirect to home
+      return <Navigate to="/" />;
     }
-    
-    // Default case
-    return <Navigate to="/" />;
   }
 
   return element;
@@ -83,7 +80,7 @@ const AppRoutes = () => (
     <Route path="/cart" element={<Cart />} />
     <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
     <Route path="/login" element={<Login />} />
-    <Route path="/admin" element={<Admin />} />
+    <Route path="/admin" element={<ProtectedRoute element={<Admin />} />} />
     <Route path="/doctor-panel" element={<ProtectedRoute element={<DoctorPanel />} requiredRole="doctor" />} />
     <Route path="/doctor-registration" element={<DoctorRegistration />} />
     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

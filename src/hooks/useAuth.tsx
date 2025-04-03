@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "../hooks/use-toast";
@@ -33,7 +32,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Check active session and sets the user
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         const userData = session.user.user_metadata;
@@ -53,7 +51,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     });
 
-    // Listen for changes on auth state (sign in, sign out, etc.)
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event);
@@ -97,7 +94,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Login function
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
@@ -116,9 +112,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      // Successfully logged in
       if (data && data.user) {
         const userData = data.user.user_metadata;
+        console.log("Login successful, user metadata:", userData);
+        
         setUser({
           id: data.user.id,
           email: data.user.email || "",
@@ -141,7 +138,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Register function
   const register = async (email: string, password: string, name: string, role: string) => {
     try {
       setIsLoading(true);
@@ -168,7 +164,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw error;
       }
 
-      // Successfully registered
       if (data && data.user) {
         toast({
           title: "Registration successful",
@@ -182,7 +177,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Logout function
   const logout = async () => {
     try {
       setIsLoading(true);
@@ -210,8 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setIsLoading(false);
     }
   };
-  
-  // Update user profile
+
   const updateUserProfile = async (userData: Partial<User>): Promise<User | null> => {
     try {
       setIsLoading(true);
@@ -232,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: userData.name,
           phone: userData.phone,
           location: userData.location,
-          role: userData.role || user.role, // Preserve existing role if not provided
+          role: userData.role || user.role,
         }
       });
       
@@ -278,7 +271,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Set user role (function to easily change user role)
   const setUserRole = async (role: "patient" | "doctor" | "admin"): Promise<void> => {
     try {
       setIsLoading(true);
@@ -310,6 +302,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (data.user) {
         const updatedUserData = data.user.user_metadata;
+        console.log("Updated user metadata after role change:", updatedUserData);
+        
         const updatedUser = {
           ...user,
           role: updatedUserData.role,
@@ -321,6 +315,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           title: "Role updated",
           description: `Your role has been updated to ${role}`,
         });
+        
+        setTimeout(() => {
+          window.location.reload();
+        }, 1000);
       }
     } catch (error) {
       console.error("Unexpected role update error:", error);
