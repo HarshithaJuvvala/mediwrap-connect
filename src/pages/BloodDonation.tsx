@@ -105,6 +105,9 @@ const BloodDonation = () => {
   
   const bloodDonationService = new BloodDonationService();
   
+  // Filtered centers state
+  const [filteredCenters, setFilteredCenters] = useState(donationCenters);
+  
   // Check if user is already registered as donor
   const { data: isRegistered = false, refetch: refetchDonorStatus } = useQuery({
     queryKey: ['donorStatus', user?.id],
@@ -186,6 +189,34 @@ const BloodDonation = () => {
       refetchDonations();
     }
   });
+
+  // Handle search functionality
+  const handleSearch = () => {
+    let results = [...donationCenters];
+    
+    if (bloodType) {
+      results = results.filter(center => 
+        center.bloodNeeded.includes(bloodType)
+      );
+    }
+    
+    if (location) {
+      const searchTerm = location.toLowerCase();
+      results = results.filter(center => 
+        center.name.toLowerCase().includes(searchTerm) || 
+        center.address.toLowerCase().includes(searchTerm)
+      );
+    }
+    
+    setFilteredCenters(results);
+    
+    if (results.length === 0) {
+      toast({
+        title: "No Results",
+        description: "No donation centers match your criteria. Try different search terms.",
+      });
+    }
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -295,7 +326,10 @@ const BloodDonation = () => {
                 />
               </div>
               <div className="flex items-end">
-                <Button className="w-full bg-mediwrap-red hover:bg-mediwrap-red/90 text-white">
+                <Button 
+                  className="w-full bg-mediwrap-red hover:bg-mediwrap-red/90 text-white"
+                  onClick={handleSearch}
+                >
                   Find Donation Centers
                 </Button>
               </div>
@@ -311,7 +345,7 @@ const BloodDonation = () => {
           <div className="lg:col-span-2">
             <h2 className="text-2xl font-bold mb-6">Nearby Donation Centers</h2>
             <div className="space-y-6">
-              {donationCenters.map((center) => (
+              {filteredCenters.map((center) => (
                 <Card key={center.id} className={`overflow-hidden border ${center.urgent ? 'border-mediwrap-red/50' : ''}`}>
                   {center.urgent && (
                     <div className="bg-mediwrap-red text-white px-4 py-1 text-sm font-medium">
@@ -362,6 +396,23 @@ const BloodDonation = () => {
                   </div>
                 </Card>
               ))}
+              
+              {filteredCenters.length === 0 && (
+                <div className="text-center py-8 bg-white dark:bg-gray-800 rounded-lg shadow-md">
+                  <p className="text-gray-600 dark:text-gray-400">No donation centers match your search criteria.</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => {
+                      setBloodType("");
+                      setLocation("");
+                      setFilteredCenters(donationCenters);
+                    }}
+                  >
+                    Clear Filters
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
           

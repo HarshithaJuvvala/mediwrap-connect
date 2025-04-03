@@ -1,16 +1,19 @@
 
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Menu, X, Heart, User, ShoppingCart, Moon, Sun, Stethoscope } from "lucide-react";
+import { Menu, X, Heart, User, ShoppingCart, Moon, Sun, Stethoscope, Shield } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCart } from "@/hooks/useCart";
+import { useAuth } from "@/hooks/useAuth";
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { toast } = useToast();
   const [isDarkMode, setIsDarkMode] = useState(false);
   const { totalItems } = useCart(); // Use the cart hook to get the total items
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const toggleDarkMode = () => {
     setIsDarkMode(!isDarkMode);
@@ -54,6 +57,12 @@ const Navbar = () => {
               <Stethoscope className="h-4 w-4" />
               <span>For Doctors</span>
             </Link>
+            {user?.role === 'admin' && (
+              <Link to="/admin" className="text-gray-700 dark:text-gray-300 hover:text-mediwrap-blue dark:hover:text-mediwrap-blue-light px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1">
+                <Shield className="h-4 w-4" />
+                <span>Admin</span>
+              </Link>
+            )}
           </div>
 
           <div className="hidden md:flex items-center space-x-4">
@@ -146,6 +155,18 @@ const Navbar = () => {
                 <span>For Doctors</span>
               </div>
             </Link>
+            {user?.role === 'admin' && (
+              <Link
+                to="/admin"
+                className="block px-3 py-2 rounded-md text-base font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
+                onClick={() => setIsOpen(false)}
+              >
+                <div className="flex items-center gap-2">
+                  <Shield className="h-4 w-4" />
+                  <span>Admin</span>
+                </div>
+              </Link>
+            )}
           </div>
           <div className="pt-4 pb-3 border-t border-gray-200 dark:border-gray-700">
             <div className="flex items-center px-5">
@@ -153,7 +174,7 @@ const Navbar = () => {
                 <User className="h-10 w-10 rounded-full p-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300" />
               </div>
               <div className="ml-3">
-                <div className="text-base font-medium text-gray-800 dark:text-gray-200">Guest User</div>
+                <div className="text-base font-medium text-gray-800 dark:text-gray-200">{user?.name || "Guest User"}</div>
                 <div className="text-sm font-medium text-gray-500 dark:text-gray-400">guest@example.com</div>
               </div>
               <div className="ml-auto flex items-center space-x-4">

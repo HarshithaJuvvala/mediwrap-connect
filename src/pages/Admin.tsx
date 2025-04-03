@@ -71,23 +71,35 @@ const Admin = () => {
   });
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/login');
-      return;
-    }
+    const checkAuth = async () => {
+      // Set a small delay to ensure auth state is properly loaded
+      setTimeout(() => {
+        if (!isAuthenticated) {
+          navigate('/login');
+          toast({
+            title: "Authentication Required",
+            description: "Please log in to access the admin page.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        if (user?.role !== 'admin') {
+          navigate('/');
+          toast({
+            title: "Access Denied",
+            description: "You do not have permission to access this area.",
+            variant: "destructive",
+          });
+          return;
+        }
+        
+        fetchData();
+      }, 100);
+    };
     
-    if (user?.role !== 'admin') {
-      navigate('/');
-      toast({
-        title: "Access Denied",
-        description: "You do not have permission to access this area.",
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    fetchData();
-  }, [isAuthenticated, user]);
+    checkAuth();
+  }, [isAuthenticated, user, navigate]);
 
   const fetchData = async () => {
     try {
@@ -176,6 +188,11 @@ const Admin = () => {
       
     } catch (error) {
       console.error('Error fetching data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load admin data. Please try again later.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -289,6 +306,19 @@ const Admin = () => {
     });
     setIsUserDialogOpen(true);
   };
+
+  // If still checking authentication, show loading
+  if (!isAuthenticated && !user) {
+    return (
+      <Layout>
+        <div className="container mx-auto px-4 py-12">
+          <div className="text-center">
+            <p className="text-xl text-gray-500 dark:text-gray-400">Loading admin dashboard...</p>
+          </div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
