@@ -145,8 +145,33 @@ const Profile = () => {
     updateProfile.mutate();
   };
 
+  const handleResetProfile = () => {
+    if (user) {
+      setProfileData({
+        name: user.name || "",
+        phone: user.phone || "+91 ",
+        location: user.location || "India"
+      });
+    }
+    setIsEditing(false);
+  };
+
   if (!isAuthenticated || !user) {
-    return null; // Don't render anything if not authenticated
+    return (
+      <Layout>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+          <div className="text-center py-16">
+            <p className="text-xl text-gray-500">Please log in to view your profile</p>
+            <Button 
+              className="mt-4 bg-mediwrap-blue hover:bg-mediwrap-blue-light"
+              onClick={() => navigate("/login")}
+            >
+              Log In
+            </Button>
+          </div>
+        </div>
+      </Layout>
+    );
   }
 
   return (
@@ -168,7 +193,9 @@ const Profile = () => {
                 </CardTitle>
               </CardHeader>
               <CardContent className="flex flex-col items-center">
-                <Avatar className="w-32 h-32"><AvatarImage src={`https://avatar.vercel.sh/${user.email}?size=128`} alt={user.name} /><AvatarFallback>
+                <Avatar className="w-32 h-32">
+                  <AvatarImage src={`https://avatar.vercel.sh/${user.email}?size=128`} alt={user.name} />
+                  <AvatarFallback>
                     <UserCircle className="w-32 h-32 text-gray-400" />
                   </AvatarFallback>
                 </Avatar>
@@ -215,7 +242,7 @@ const Profile = () => {
                         type="button" 
                         variant="outline" 
                         className="flex-1" 
-                        onClick={() => setIsEditing(false)}
+                        onClick={handleResetProfile}
                       >
                         Cancel
                       </Button>

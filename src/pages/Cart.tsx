@@ -18,7 +18,7 @@ const Cart = () => {
 
   // Calculate discount and shipping
   const discount = isCouponApplied ? subtotal * 0.1 : 0; // 10% discount if coupon applied
-  const shipping = subtotal > 50 ? 0 : 5.99; // Free shipping over $50
+  const shipping = subtotal > 500 ? 0 : 50; // Free shipping over ₹500
   const total = subtotal - discount + shipping;
 
   // Handle applying coupon code
@@ -77,7 +77,7 @@ const Cart = () => {
                         />
                         <div>
                           <h3 className="font-semibold">{item.name}</h3>
-                          <p className="text-gray-500 text-sm">Unit Price: ${item.price.toFixed(2)}</p>
+                          <p className="text-gray-500 text-sm">Unit Price: ₹{item.price.toFixed(2)}</p>
                         </div>
                       </div>
                       
@@ -103,7 +103,7 @@ const Cart = () => {
                         </div>
                         
                         <div className="font-semibold w-20 text-right">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          ₹{(item.price * item.quantity).toFixed(2)}
                         </div>
                         
                         <Button 
@@ -138,24 +138,24 @@ const Cart = () => {
                 <CardContent className="space-y-4">
                   <div className="flex justify-between">
                     <span>Subtotal</span>
-                    <span>${subtotal.toFixed(2)}</span>
+                    <span>₹{subtotal.toFixed(2)}</span>
                   </div>
                   
                   {discount > 0 && (
                     <div className="flex justify-between text-green-600">
                       <span>Discount (10%)</span>
-                      <span>-${discount.toFixed(2)}</span>
+                      <span>-₹{discount.toFixed(2)}</span>
                     </div>
                   )}
                   
                   <div className="flex justify-between">
                     <span>Shipping</span>
-                    <span>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span>
+                    <span>{shipping === 0 ? "Free" : `₹${shipping.toFixed(2)}`}</span>
                   </div>
                   
                   <div className="border-t pt-4 flex justify-between font-bold text-lg">
                     <span>Total</span>
-                    <span>${total.toFixed(2)}</span>
+                    <span>₹{total.toFixed(2)}</span>
                   </div>
                   
                   <div className="flex space-x-2">
@@ -191,7 +191,7 @@ const Cart = () => {
                     
                     <div className="flex items-center justify-center mt-4 text-sm text-gray-500">
                       <Truck className="mr-2 h-4 w-4" />
-                      Free shipping on orders over $50
+                      Free shipping on orders over ₹500
                     </div>
                   </div>
                 </CardContent>

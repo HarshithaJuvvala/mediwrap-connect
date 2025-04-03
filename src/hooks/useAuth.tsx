@@ -1,4 +1,3 @@
-
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "../hooks/use-toast";
@@ -21,6 +20,7 @@ interface AuthContextType {
   register: (email: string, password: string, name: string, role: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUserProfile: (userData: Partial<User>) => Promise<User | null>;
+  setUserRole: (role: "patient" | "doctor" | "admin") => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -240,6 +240,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  // Set user role (new function to easily change user role)
+  const setUserRole = async (role: "patient" | "doctor" | "admin"): Promise<void> => {
+    try {
+      setIsLoading(true);
+      
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to change roles",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const { data, error } = await supabase.auth.updateUser({
+        data: { role }
+      });
+      
+      if (error) {
+        console.error("Role update error:", error);
+        toast({
+          title: "Role update failed",
+          description: error.message,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      if (data.user) {
+        const updatedUserData = data.user.user_metadata;
+        const updatedUser = {
+          ...user,
+          role: updatedUserData.role,
+        };
+        
+        setUser(updatedUser);
+        
+        toast({
+          title: "Role updated",
+          description: `Your role has been updated to ${role}`,
+        });
+      }
+    } catch (error) {
+      console.error("Unexpected role update error:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -250,6 +299,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         register,
         logout,
         updateUserProfile,
+        setUserRole,
       }}
     >
       {children}
