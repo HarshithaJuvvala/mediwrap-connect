@@ -4,7 +4,7 @@ import Layout from "@/components/layout/Layout";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/components/ui/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Activity, Calendar, Search, Settings2, User, Users } from "lucide-react";
@@ -50,7 +50,7 @@ const Admin = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isDevelopmentMode] = useState(true); // For easier testing
+  const [isDevelopmentMode] = useState(true); // Always true for easier testing
   
   // Data states
   const [users, setUsers] = useState<User[]>([]);
@@ -72,60 +72,33 @@ const Admin = () => {
   });
 
   useEffect(() => {
-    const checkAuth = async () => {
-      // Set a small delay to ensure auth state is properly loaded
-      setTimeout(() => {
-        if (!isAuthenticated) {
-          navigate('/login');
-          toast({
-            title: "Authentication Required",
-            description: "Please log in to access the admin page.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        // In development mode, allow accessing admin page and show option to become admin
-        if (isDevelopmentMode) {
-          if (user?.role !== 'admin') {
-            toast({
-              title: "Not an admin",
-              description: "Click 'Become Admin' to grant yourself admin privileges for testing",
-            });
-          }
-          fetchData();
-          return;
-        }
-        
-        // In production, strict admin role check
-        if (!isDevelopmentMode && user?.role !== 'admin') {
-          navigate('/');
-          toast({
-            title: "Access Denied",
-            description: "You do not have permission to access this area.",
-            variant: "destructive",
-          });
-          return;
-        }
-        
-        fetchData();
-      }, 100);
-    };
+    // Load the data immediately without checking authentication first
+    fetchData();
     
-    checkAuth();
-  }, [isAuthenticated, user, navigate, isDevelopmentMode]);
+    // Show toast for non-admin users but don't block access in development mode
+    if (user && user.role !== 'admin' && isDevelopmentMode) {
+      toast({
+        title: "Not an admin",
+        description: "Click 'Become Admin' to grant yourself admin privileges for testing",
+      });
+    }
+  }, [user]);
 
   const fetchData = async () => {
     try {
+      console.log("Fetching admin data...");
+      
       // Fetch analytics data
       const { data: usersData } = await supabase.from('profiles').select('*');
       const { data: doctorsData } = await supabase.from('doctors').select('*');
       const { data: appointmentsData } = await supabase.from('appointments').select('*');
       
+      console.log("Fetched data:", { usersData, doctorsData, appointmentsData });
+      
       // Calculate approximate revenue (for demo purposes)
       let revenue = 0;
       if (appointmentsData) {
-        revenue = appointmentsData.length * 500; // Changed to ₹500 per appointment
+        revenue = appointmentsData.length * 500; // ₹500 per appointment
       }
       
       setAnalyticsData({
@@ -215,10 +188,21 @@ const Admin = () => {
       await setUserRole('admin');
       toast({
         title: "Success",
-        description: "You are now an admin. Refresh the page to access all admin features.",
+        description: "You are now an admin. The page will refresh to apply changes.",
+        duration: 5000,
       });
+      
+      // Refresh the page after a short delay to ensure user state is updated
+      setTimeout(() => {
+        window.location.reload();
+      }, 1500);
     } catch (error) {
       console.error('Error becoming admin:', error);
+      toast({
+        title: "Error",
+        description: "Failed to set admin role. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -352,12 +336,12 @@ const Admin = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
           <h1 className="text-3xl font-bold mb-4 md:mb-0">Admin Dashboard</h1>
           <div className="flex space-x-2 w-full md:w-auto">
-            {isDevelopmentMode && user?.role !== 'admin' && (
+            {user && (
               <Button 
                 onClick={handleBecomeAdmin}
                 className="bg-amber-500 hover:bg-amber-600 text-white"
               >
-                Become Admin (Dev Mode)
+                {user.role === 'admin' ? 'Refresh Admin Status' : 'Become Admin (Dev Mode)'}
               </Button>
             )}
             <Input

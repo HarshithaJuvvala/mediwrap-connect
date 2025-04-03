@@ -1,6 +1,6 @@
 
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,15 +18,27 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   
-  const { login, register, isAuthenticated } = useAuth();
+  const { login, register, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get redirect destination from URL if present
+  const from = new URLSearchParams(location.search).get('from') || '/';
   
   // Redirect if already logged in
-  React.useEffect(() => {
+  useEffect(() => {
     if (isAuthenticated) {
-      navigate('/');
+      console.log("User is authenticated, redirecting to:", from);
+      // If user is admin, offer option to go to admin page
+      if (user?.role === 'admin') {
+        toast({
+          title: "Admin logged in",
+          description: "Welcome back admin!",
+        });
+      }
+      navigate(from);
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, user, from]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,8 +47,6 @@ const Login = () => {
     try {
       await login(email, password);
       // Success handling is done within the login function
-      // If there's no throw, we can redirect
-      navigate('/');
     } catch (err) {
       console.error('Login error:', err);
       // Error handling is done within the login function

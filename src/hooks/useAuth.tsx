@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "../hooks/use-toast";
@@ -45,6 +46,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           role: userData?.role || "patient",
         });
         setIsAuthenticated(true);
+        console.log("Auth session found:", userData);
+      } else {
+        console.log("No auth session found");
       }
       setIsLoading(false);
     });
@@ -65,10 +69,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               role: userData?.role || "patient",
             });
             setIsAuthenticated(true);
+            console.log("User signed in:", userData);
           }
         } else if (event === "SIGNED_OUT") {
           setUser(null);
           setIsAuthenticated(false);
+          console.log("User signed out");
+        } else if (event === "USER_UPDATED") {
+          if (session) {
+            const userData = session.user.user_metadata;
+            setUser({
+              id: session.user.id,
+              email: session.user.email || "",
+              name: userData?.name,
+              phone: userData?.phone,
+              location: userData?.location || "India",
+              role: userData?.role || "patient",
+            });
+            console.log("User updated:", userData);
+          }
         }
       }
     );
@@ -197,12 +216,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       setIsLoading(true);
       
+      if (!user) {
+        toast({
+          title: "Error",
+          description: "You must be logged in to update your profile",
+          variant: "destructive",
+        });
+        return null;
+      }
+      
+      console.log("Updating profile with data:", userData);
+      
       const { data, error } = await supabase.auth.updateUser({
         data: {
           name: userData.name,
           phone: userData.phone,
           location: userData.location,
-          role: userData.role,
+          role: userData.role || user.role, // Preserve existing role if not provided
         }
       });
       
@@ -218,13 +248,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       if (data.user) {
         const updatedUserData = data.user.user_metadata;
+        console.log("Updated user metadata:", updatedUserData);
+        
         const updatedUser = {
           id: data.user.id,
           email: data.user.email || "",
-          name: updatedUserData.name,
-          phone: updatedUserData.phone,
+          name: updatedUserData.name || user.name,
+          phone: updatedUserData.phone || user.phone,
           location: updatedUserData.location || "India",
-          role: updatedUserData.role,
+          role: updatedUserData.role || user.role,
         };
         
         setUser(updatedUser);
@@ -253,6 +285,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
         return;
       }
+      
+      console.log("Setting user role to:", role);
       
       const { data, error } = await supabase.auth.updateUser({
         data: { role }

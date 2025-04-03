@@ -21,7 +21,15 @@ import DoctorRegistration from "./pages/DoctorRegistration";
 import NotFound from "./pages/NotFound";
 import DoctorPanel from "./pages/DoctorPanel";
 
-const queryClient = new QueryClient();
+// Create a new query client with improved settings
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 const App = () => (
   <BrowserRouter>

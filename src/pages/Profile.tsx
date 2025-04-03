@@ -37,6 +37,7 @@ const Profile = () => {
   // Set initial profile data
   useEffect(() => {
     if (user) {
+      console.log("Setting initial profile data from user:", user);
       setProfileData({
         name: user.name || "",
         phone: user.phone || "+91 ",
@@ -85,6 +86,8 @@ const Profile = () => {
     mutationFn: async () => {
       if (!user) return null;
       
+      console.log("Submitting profile update with data:", profileData);
+      
       const updates = {
         ...user,
         name: profileData.name,
@@ -94,12 +97,15 @@ const Profile = () => {
       
       return updateUserProfile(updates);
     },
-    onSuccess: () => {
-      toast({
-        title: "Profile Updated",
-        description: "Your profile has been updated successfully.",
-      });
-      setIsEditing(false);
+    onSuccess: (updatedUser) => {
+      if (updatedUser) {
+        console.log("Profile updated successfully:", updatedUser);
+        toast({
+          title: "Profile Updated",
+          description: "Your profile has been updated successfully.",
+        });
+        setIsEditing(false);
+      }
     },
     onError: (error) => {
       console.error("Profile update error:", error);
@@ -142,6 +148,7 @@ const Profile = () => {
 
   const handleSaveProfile = (e: React.FormEvent) => {
     e.preventDefault();
+    console.log("Saving profile...");
     updateProfile.mutate();
   };
 
@@ -250,7 +257,7 @@ const Profile = () => {
                   </form>
                 ) : (
                   <>
-                    <h2 className="text-2xl font-bold mt-4">{user.name}</h2>
+                    <h2 className="text-2xl font-bold mt-4">{user.name || "Anonymous User"}</h2>
                     <Badge className="mt-2 capitalize">{user.role}</Badge>
                     
                     <div className="w-full mt-8 space-y-4">
