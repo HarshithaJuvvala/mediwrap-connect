@@ -1,0 +1,120 @@
+
+import { supabase } from "@/integrations/supabase/client";
+import { User, Doctor, Appointment } from "@/types/admin";
+import { useToast } from "@/hooks/use-toast";
+
+export const fetchUsers = async (): Promise<User[]> => {
+  try {
+    const { data, error } = await supabase.from('profiles').select('*');
+    
+    if (error) {
+      console.error("Error fetching users:", error);
+      throw error;
+    }
+    
+    // Format users from profiles
+    const formattedUsers = data?.map(user => ({
+      id: user.id,
+      name: user.name || "Unknown",
+      email: "No email", // Since email doesn't exist in profiles table
+      role: user.role || "patient",
+      status: "Active" as "Active" | "Inactive"
+    })) || [];
+    
+    return formattedUsers;
+  } catch (error) {
+    console.error("Error in fetchUsers:", error);
+    throw error;
+  }
+};
+
+export const fetchDoctors = async (): Promise<Doctor[]> => {
+  try {
+    const { data, error } = await supabase.from('doctors').select('*');
+    
+    if (error) {
+      console.error("Error fetching doctors:", error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error in fetchDoctors:", error);
+    throw error;
+  }
+};
+
+export const fetchAppointments = async (): Promise<Appointment[]> => {
+  try {
+    const { data, error } = await supabase.from('appointments').select('*');
+    
+    if (error) {
+      console.error("Error fetching appointments:", error);
+      throw error;
+    }
+    
+    return data || [];
+  } catch (error) {
+    console.error("Error in fetchAppointments:", error);
+    throw error;
+  }
+};
+
+export const addUser = async (userData: Omit<User, "id">): Promise<string> => {
+  try {
+    // Generate a UUID server-side using Supabase
+    const { data, error } = await supabase.from('profiles').insert([
+      {
+        name: userData.name,
+        role: userData.role
+      }
+    ]).select();
+
+    if (error) {
+      console.error("Error adding user:", error);
+      throw error;
+    }
+    
+    return data?.[0]?.id;
+  } catch (error) {
+    console.error("Error in addUser:", error);
+    throw error;
+  }
+};
+
+export const updateUser = async (userId: string, userData: Partial<User>): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .update({
+        name: userData.name,
+        role: userData.role
+      })
+      .eq('id', userId);
+    
+    if (error) {
+      console.error("Error updating user:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error in updateUser:", error);
+    throw error;
+  }
+};
+
+export const deleteUser = async (userId: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from('profiles')
+      .delete()
+      .eq('id', userId);
+    
+    if (error) {
+      console.error("Error deleting user:", error);
+      throw error;
+    }
+  } catch (error) {
+    console.error("Error in deleteUser:", error);
+    throw error;
+  }
+};
