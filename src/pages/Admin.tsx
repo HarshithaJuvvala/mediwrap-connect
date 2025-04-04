@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
@@ -63,9 +64,9 @@ const Admin = () => {
     totalRevenue: 0
   });
 
-  // New user form state
+  // New user form state with a generated UUID
   const [newUser, setNewUser] = useState<User>({
-    id: "",
+    id: crypto.randomUUID(), // Generate a valid UUID for the new user
     name: "",
     email: "",
     role: "patient",
@@ -148,14 +149,14 @@ const Admin = () => {
             .from('doctors')
             .select('name')
             .eq('id', appointment.doctor_id)
-            .single();
+            .maybeSingle();
             
           // Get patient name
           const { data: patientData } = await supabase
             .from('profiles')
             .select('name')
             .eq('id', appointment.patient_id)
-            .single();
+            .maybeSingle();
             
           return {
             id: appointment.id,
@@ -206,19 +207,32 @@ const Admin = () => {
 
   const handleAddUser = async () => {
     try {
+      console.log('Adding new user with ID:', newUser.id);
+      
+      // Ensure we have a valid UUID before proceeding
+      if (!newUser.id || newUser.id.trim() === '') {
+        // Generate a new UUID if the current one is invalid
+        const generatedId = crypto.randomUUID();
+        setNewUser(prev => ({ ...prev, id: generatedId }));
+        console.log('Generated new UUID:', generatedId);
+      }
+      
       // In a real application, you'd send an invite to the user's email
       // For this demo, we'll just add a profile
       const { error } = await supabase
         .from('profiles')
         .insert([
           {
-            id: newUser.id, // In a real app, this would be created by auth
+            id: newUser.id, // Should now be a valid UUID
             name: newUser.name,
             role: newUser.role
           }
         ]);
         
-      if (error) throw error;
+      if (error) {
+        console.error('Error adding user:', error);
+        throw error;
+      }
       
       toast({
         title: "Success",
@@ -227,11 +241,20 @@ const Admin = () => {
       
       fetchData(); // Refresh the user list
       setIsUserDialogOpen(false);
+      
+      // Reset new user form with a fresh UUID
+      setNewUser({
+        id: crypto.randomUUID(),
+        name: "",
+        email: "",
+        role: "patient",
+        status: "Active"
+      });
     } catch (error) {
       console.error('Error adding user:', error);
       toast({
         title: "Error",
-        description: "Failed to add user.",
+        description: `Failed to add user: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: "destructive",
       });
     }
@@ -306,7 +329,7 @@ const Admin = () => {
   const handleAddNewUser = () => {
     setSelectedUser(null);
     setNewUser({
-      id: "",
+      id: crypto.randomUUID(), // Generate a new UUID for the new user
       name: "",
       email: "",
       role: "patient",

@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface User {
@@ -40,6 +40,11 @@ const UserDialog = ({
           <DialogTitle>
             {selectedUser ? "Edit User" : "Add New User"}
           </DialogTitle>
+          <DialogDescription>
+            {selectedUser 
+              ? "Update the user details below." 
+              : "Fill in the information to create a new user."}
+          </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">

@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -50,23 +51,30 @@ const ProtectedRoute = ({
 
   // If not authenticated, redirect to login
   if (!isAuthenticated) {
+    console.log("User not authenticated, redirecting to", redirectPath);
     return <Navigate to={redirectPath} />;
   }
 
   // If role is required but user doesn't have it, handle appropriately
   if (requiredRole && user?.role !== requiredRole) {
-    if (requiredRole === 'admin' && user) {
-      // For admin pages, let the Admin component handle the role check internally
+    console.log(`Role ${requiredRole} required, but user has role ${user?.role}`);
+    
+    if (requiredRole === 'admin') {
+      // For admin pages, go to the page but show the "become admin" option
+      console.log("Admin page requested, allowing access to show admin activation option");
       return element;
     } else if (requiredRole === 'doctor' && user) {
       // For doctor pages, redirect to registration if not a doctor
+      console.log("Redirecting to doctor registration");
       return <Navigate to="/doctor-registration" />;
     } else {
       // Default case, redirect to home
+      console.log("Redirecting to home due to insufficient role");
       return <Navigate to="/" />;
     }
   }
 
+  console.log("Access granted to protected route");
   return element;
 };
 
