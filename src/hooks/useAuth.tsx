@@ -1,6 +1,7 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "../hooks/use-toast";
+import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
 
 interface User {
@@ -32,25 +33,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        const userData = session.user.user_metadata;
-        console.log("Auth session found:", userData);
-        setUser({
-          id: session.user.id,
-          email: session.user.email || "",
-          name: userData?.name,
-          phone: userData?.phone,
-          location: userData?.location || "India",
-          role: userData?.role || "patient",
-        });
-        setIsAuthenticated(true);
-      } else {
-        console.log("No auth session found");
-      }
-      setIsLoading(false);
-    });
-
+    console.log("Auth provider initialized");
+    
+    // First set up the auth listener before checking the session
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         console.log("Auth state changed:", event);
@@ -89,6 +74,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     );
 
+    // Then check if there's an existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        const userData = session.user.user_metadata;
+        console.log("Auth session found:", userData);
+        setUser({
+          id: session.user.id,
+          email: session.user.email || "",
+          name: userData?.name,
+          phone: userData?.phone,
+          location: userData?.location || "India",
+          role: userData?.role || "patient",
+        });
+        setIsAuthenticated(true);
+      } else {
+        console.log("No auth session found");
+      }
+      setIsLoading(false);
+    });
+
     return () => {
       authListener.subscription?.unsubscribe();
     };
@@ -97,6 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     try {
       setIsLoading(true);
+      console.log("Attempting login for:", email);
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -141,6 +148,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const register = async (email: string, password: string, name: string, role: string) => {
     try {
       setIsLoading(true);
+      console.log("Registering new user:", email, "with role:", role);
+      
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -165,6 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (data && data.user) {
+        console.log("Registration successful:", data.user);
         toast({
           title: "Registration successful",
           description: `Your ${role} account has been created.`,
@@ -180,6 +190,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       setIsLoading(true);
+      console.log("Logging out user");
+      
       const { error } = await supabase.auth.signOut();
       
       if (error) {
@@ -316,9 +328,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           description: `Your role has been updated to ${role}`,
         });
         
-        setTimeout(() => {
-          window.location.reload();
-        }, 1000);
+        // Force page reload to reflect new role
+        window.location.href = role === 'doctor' ? '/doctor-panel' : 
+                              role === 'admin' ? '/admin' : '/';
       }
     } catch (error) {
       console.error("Unexpected role update error:", error);

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from '@/hooks/use-toast';
+import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import { Eye, EyeOff } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +21,7 @@ const Login = () => {
   const [selectedRole, setSelectedRole] = useState('patient');
   
   const { login, register, isAuthenticated, user } = useAuth();
+  const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
   
@@ -30,8 +31,9 @@ const Login = () => {
   // Redirect if already logged in
   useEffect(() => {
     if (isAuthenticated) {
-      console.log("User is authenticated, redirecting to:", from);
-      // If user is admin, offer option to go to admin page
+      console.log("User is authenticated, role:", user?.role);
+      
+      // If user is admin, redirect to admin page
       if (user?.role === 'admin') {
         toast({
           title: "Admin logged in",
@@ -58,9 +60,20 @@ const Login = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!email || !password) {
+      toast({
+        title: "Missing information",
+        description: "Please enter both email and password",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setLoading(true);
     
     try {
+      console.log("Attempting to login with:", email);
       await login(email, password);
       // Success handling is done within the login function
     } catch (err) {
@@ -95,6 +108,7 @@ const Login = () => {
     setLoading(true);
     
     try {
+      console.log("Registering new user:", email, "with role:", selectedRole);
       await register(email, password, name, selectedRole);
       toast({
         title: "Registration successful",
@@ -120,6 +134,7 @@ const Login = () => {
   const loginAsDemoUser = async (demoUser: {email: string, password: string, role: string}) => {
     setLoading(true);
     try {
+      console.log("Logging in with demo account:", demoUser.email, "role:", demoUser.role);
       await login(demoUser.email, demoUser.password);
     } catch (err) {
       console.error('Demo login error:', err);

@@ -60,10 +60,10 @@ const ProtectedRoute = ({
     console.log(`Role ${requiredRole} required, but user has role ${user?.role}`);
     
     if (requiredRole === 'admin') {
-      // For admin pages, go to the page but show the "become admin" option
-      console.log("Admin page requested, allowing access to show admin activation option");
-      return element;
-    } else if (requiredRole === 'doctor' && user) {
+      // For admin pages, redirect to home
+      console.log("Admin page requested, user is not admin, redirecting to home");
+      return <Navigate to="/" />;
+    } else if (requiredRole === 'doctor') {
       // For doctor pages, redirect to registration if not a doctor
       console.log("Redirecting to doctor registration");
       return <Navigate to="/doctor-registration" />;
@@ -74,7 +74,7 @@ const ProtectedRoute = ({
     }
   }
 
-  console.log("Access granted to protected route");
+  console.log("Access granted to protected route for role:", requiredRole);
   return element;
 };
 
@@ -88,7 +88,7 @@ const AppRoutes = () => (
     <Route path="/cart" element={<Cart />} />
     <Route path="/profile" element={<ProtectedRoute element={<Profile />} />} />
     <Route path="/login" element={<Login />} />
-    <Route path="/admin" element={<ProtectedRoute element={<Admin />} />} />
+    <Route path="/admin" element={<ProtectedRoute element={<Admin />} requiredRole="admin" />} />
     <Route path="/doctor-panel" element={<ProtectedRoute element={<DoctorPanel />} requiredRole="doctor" />} />
     <Route path="/doctor-registration" element={<DoctorRegistration />} />
     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

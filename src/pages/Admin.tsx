@@ -1,23 +1,45 @@
 
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
-import { Activity, Calendar, Search, Settings2, User, Users } from "lucide-react";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-
-// Import admin components
 import AnalyticsCards from "@/components/admin/AnalyticsCards";
-import RecentAppointments from "@/components/admin/RecentAppointments";
+import AdminSettings from "@/components/admin/AdminSettings";
 import UserManagement from "@/components/admin/UserManagement";
 import AppointmentsManagement from "@/components/admin/AppointmentsManagement";
+import RecentAppointments from "@/components/admin/RecentAppointments";
+import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
 import UserDialog from "@/components/admin/UserDialog";
-import AdminSettings from "@/components/admin/AdminSettings";
+import { v4 as uuidv4 } from 'uuid';
+
+// Types
+interface Doctor {
+  id: string;
+  name: string;
+  specialty: string;
+  hospital: string;
+  rating: number;
+  reviews: number;
+  image: string;
+  available: boolean;
+  next_available: string;
+  fee: number;
+  education: string;
+  experience: string;
+  location: string;
+  online: boolean;
+}
+
+interface Appointment {
+  id: string;
+  doctor_id: string;
+  patient_id: string;
+  date: string;
+  time: string;
+  type: string;
+  status: string;
+}
 
 interface User {
   id: string;
@@ -27,46 +49,19 @@ interface User {
   status: "Active" | "Inactive";
 }
 
-interface Appointment {
-  id: string;
-  doctor_name: string;
-  patient_name: string;
-  date: string;
-  time: string;
-  status: string;
-  type: string;
-}
-
-interface AnalyticsData {
-  totalUsers: number;
-  totalDoctors: number;
-  activeAppointments: number;
-  totalRevenue: number;
-}
-
 const Admin = () => {
-  const navigate = useNavigate();
-  const { isAuthenticated, user, setUserRole } = useAuth();
-  const { toast } = useToast();
-  const [currentTab, setCurrentTab] = useState("dashboard");
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isUserDialogOpen, setIsUserDialogOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("analytics");
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [isDevelopmentMode] = useState(true); // Always true for easier testing
-  
-  // Data states
-  const [users, setUsers] = useState<User[]>([]);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [analyticsData, setAnalyticsData] = useState<AnalyticsData>({
-    totalUsers: 0,
-    totalDoctors: 0,
-    activeAppointments: 0,
-    totalRevenue: 0
-  });
+  const [usersData, setUsersData] = useState<User[]>([]);
+  const [doctorsData, setDoctorsData] = useState<Doctor[]>([]);
+  const [appointmentsData, setAppointmentsData] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const { toast } = useToast();
+  const { user } = useAuth();
 
-  // New user form state with a generated UUID
   const [newUser, setNewUser] = useState<User>({
-    id: crypto.randomUUID(), // Generate a valid UUID for the new user
+    id: uuidv4(),
     name: "",
     email: "",
     role: "patient",
@@ -75,194 +70,153 @@ const Admin = () => {
 
   useEffect(() => {
     console.log("Admin page loaded");
-    console.log("Auth state:", { isAuthenticated, user });
-  }, [isAuthenticated, user]);
-
-  useEffect(() => {
-    // Load the data immediately without checking authentication first
-    fetchData();
+    console.log("Auth state:", { isAuthenticated: !!user, user });
+    fetchAdminData();
   }, [user]);
 
-  const fetchData = async () => {
+  const fetchAdminData = async () => {
     try {
       console.log("Fetching admin data...");
+      setIsLoading(true);
       
-      // Fetch analytics data
-      const { data: usersData } = await supabase.from('profiles').select('*');
-      const { data: doctorsData } = await supabase.from('doctors').select('*');
-      const { data: appointmentsData } = await supabase.from('appointments').select('*');
+      // Fetch users
+      const { data: users, error: usersError } = await supabase
+        .from('profiles')
+        .select('*');
       
-      console.log("Fetched data:", { usersData, doctorsData, appointmentsData });
-      
-      // Calculate approximate revenue (for demo purposes)
-      let revenue = 0;
-      if (appointmentsData) {
-        revenue = appointmentsData.length * 500; // ₹500 per appointment
+      if (usersError) {
+        console.error("Error fetching users:", usersError);
+        toast({
+          title: "Error",
+          description: "Failed to fetch users data",
+          variant: "destructive",
+        });
+      } else {
+        const formattedUsers = users?.map(user => ({
+          id: user.id,
+          name: user.name || "Unknown",
+          email: user.email || "No email",
+          role: user.role || "patient",
+          status: "Active" as "Active" | "Inactive"
+        })) || [];
+        setUsersData(formattedUsers);
       }
       
-      setAnalyticsData({
-        totalUsers: usersData?.length || 0,
-        totalDoctors: doctorsData?.length || 0,
-        activeAppointments: appointmentsData?.filter(a => a.status === 'confirmed').length || 0,
-        totalRevenue: revenue
-      });
+      // Fetch doctors
+      const { data: doctors, error: doctorsError } = await supabase
+        .from('doctors')
+        .select('*');
       
-      // Fetch users - we can't directly query auth.users so we work with profiles
-      const { data: profilesData } = await supabase.from('profiles').select('*');
+      if (doctorsError) {
+        console.error("Error fetching doctors:", doctorsError);
+        toast({
+          title: "Error",
+          description: "Failed to fetch doctors data",
+          variant: "destructive",
+        });
+      } else {
+        setDoctorsData(doctors || []);
+      }
       
-      // We need to create User objects from profile data
-      const mergedUsers: User[] = profilesData?.map(profile => {
-        return {
-          id: profile.id,
-          name: profile.name || 'Unknown',
-          email: `user-${profile.id.substring(0, 6)}@example.com`, // Use placeholder emails
-          role: profile.role || 'patient',
-          status: 'Active' as const
-        };
-      }) || [];
-      
-      setUsers(mergedUsers);
-      
-      // Fetch appointments with doctor and patient names
-      const { data: appointmentsWithDetails, error: appointmentsError } = await supabase
+      // Fetch appointments
+      const { data: appointments, error: appointmentsError } = await supabase
         .from('appointments')
-        .select(`
-          id, 
-          date,
-          time,
-          status,
-          type,
-          patient_id,
-          doctor_id
-        `);
-        
+        .select('*');
+      
       if (appointmentsError) {
-        console.error('Error fetching appointments:', appointmentsError);
-        return;
+        console.error("Error fetching appointments:", appointmentsError);
+        toast({
+          title: "Error",
+          description: "Failed to fetch appointments data",
+          variant: "destructive",
+        });
+      } else {
+        setAppointmentsData(appointments || []);
       }
       
-      // Get doctor and patient names
-      const enhancedAppointments: Appointment[] = await Promise.all(
-        appointmentsWithDetails?.map(async appointment => {
-          // Get doctor name
-          const { data: doctorData } = await supabase
-            .from('doctors')
-            .select('name')
-            .eq('id', appointment.doctor_id)
-            .maybeSingle();
-            
-          // Get patient name
-          const { data: patientData } = await supabase
-            .from('profiles')
-            .select('name')
-            .eq('id', appointment.patient_id)
-            .maybeSingle();
-            
-          return {
-            id: appointment.id,
-            doctor_name: doctorData?.name || 'Unknown Doctor',
-            patient_name: patientData?.name || 'Unknown Patient', 
-            date: appointment.date,
-            time: appointment.time,
-            status: appointment.status,
-            type: appointment.type
-          };
-        }) || []
-      );
-      
-      setAppointments(enhancedAppointments);
+      console.log("Fetched data:", { 
+        usersData: users, 
+        doctorsData: doctors, 
+        appointmentsData: appointments 
+      });
       
     } catch (error) {
-      console.error('Error fetching data:', error);
+      console.error("Error in fetchAdminData:", error);
       toast({
         title: "Error",
-        description: "Failed to load admin data. Please try again later.",
+        description: "An unexpected error occurred fetching admin data",
         variant: "destructive",
       });
-    }
-  };
-
-  const handleBecomeAdmin = async () => {
-    try {
-      await setUserRole('admin');
-      toast({
-        title: "Success",
-        description: "You are now an admin. The page will refresh to apply changes.",
-        duration: 5000,
-      });
-      
-      // Refresh the page after a short delay to ensure user state is updated
-      setTimeout(() => {
-        window.location.reload();
-      }, 1500);
-    } catch (error) {
-      console.error('Error becoming admin:', error);
-      toast({
-        title: "Error",
-        description: "Failed to set admin role. Please try again.",
-        variant: "destructive",
-      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleAddUser = async () => {
+    // Validate the new user data
+    if (!newUser.name || !newUser.email || !newUser.role) {
+      toast({
+        title: "Missing Information",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      console.log('Adding new user with ID:', newUser.id);
+      // Generate a proper UUID
+      const userId = uuidv4();
+      console.log("Adding new user with ID:", userId);
       
-      // Ensure we have a valid UUID before proceeding
-      if (!newUser.id || newUser.id.trim() === '') {
-        // Generate a new UUID if the current one is invalid
-        const generatedId = crypto.randomUUID();
-        setNewUser(prev => ({ ...prev, id: generatedId }));
-        console.log('Generated new UUID:', generatedId);
-      }
-      
-      // In a real application, you'd send an invite to the user's email
-      // For this demo, we'll just add a profile
-      const { error } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            id: newUser.id, // Should now be a valid UUID
-            name: newUser.name,
-            role: newUser.role
-          }
-        ]);
-        
+      // Add the user to the profiles table
+      const { error } = await supabase.from('profiles').insert([
+        {
+          id: userId,
+          name: newUser.name,
+          email: newUser.email,
+          role: newUser.role
+        }
+      ]);
+
       if (error) {
-        console.error('Error adding user:', error);
+        console.error("Error adding user:", error);
+        toast({
+          title: "Error",
+          description: `Failed to add user: ${error.message}`,
+          variant: "destructive",
+        });
         throw error;
       }
+
+      // Add the user to our state
+      setUsersData([...usersData, { ...newUser, id: userId }]);
       
       toast({
         title: "Success",
-        description: "User has been added.",
+        description: "User added successfully",
       });
       
-      fetchData(); // Refresh the user list
-      setIsUserDialogOpen(false);
-      
-      // Reset new user form with a fresh UUID
+      // Reset form and close dialog
       setNewUser({
-        id: crypto.randomUUID(),
+        id: uuidv4(),
         name: "",
         email: "",
         role: "patient",
         status: "Active"
       });
+      setIsDialogOpen(false);
+      
+      // Refresh data
+      fetchAdminData();
+      
     } catch (error) {
-      console.error('Error adding user:', error);
+      console.error("Error adding user:", error);
       toast({
         title: "Error",
-        description: `Failed to add user: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        description: "An unexpected error occurred adding the user",
         variant: "destructive",
       });
     }
-  };
-
-  const handleEditUser = (user: User) => {
-    setSelectedUser({...user});
-    setIsUserDialogOpen(true);
   };
 
   const handleUpdateUser = async () => {
@@ -273,217 +227,176 @@ const Admin = () => {
         .from('profiles')
         .update({
           name: selectedUser.name,
+          email: selectedUser.email,
           role: selectedUser.role
         })
         .eq('id', selectedUser.id);
-        
-      if (error) throw error;
+      
+      if (error) {
+        console.error("Error updating user:", error);
+        toast({
+          title: "Error",
+          description: `Failed to update user: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Update in the local state
+      setUsersData(
+        usersData.map(user => 
+          user.id === selectedUser.id ? selectedUser : user
+        )
+      );
       
       toast({
         title: "Success",
-        description: "User has been updated.",
+        description: "User updated successfully",
       });
       
-      fetchData(); // Refresh the user list
-      setIsUserDialogOpen(false);
       setSelectedUser(null);
+      setIsDialogOpen(false);
+      
+      // Refresh data
+      fetchAdminData();
+      
     } catch (error) {
-      console.error('Error updating user:', error);
+      console.error("Error in handleUpdateUser:", error);
       toast({
         title: "Error",
-        description: "Failed to update user.",
+        description: "An unexpected error occurred updating the user",
         variant: "destructive",
       });
     }
   };
-
+  
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm("Are you sure you want to delete this user?")) return;
-    
     try {
-      // In a real application with Supabase Auth, you'd need admin privileges
-      // For this demo, we'll just remove the profile
       const { error } = await supabase
         .from('profiles')
         .delete()
         .eq('id', userId);
-        
-      if (error) throw error;
+      
+      if (error) {
+        console.error("Error deleting user:", error);
+        toast({
+          title: "Error",
+          description: `Failed to delete user: ${error.message}`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Update in the local state
+      setUsersData(usersData.filter(user => user.id !== userId));
       
       toast({
         title: "Success",
-        description: "User has been deleted.",
+        description: "User deleted successfully",
       });
       
-      fetchData(); // Refresh the user list
     } catch (error) {
-      console.error('Error deleting user:', error);
+      console.error("Error in handleDeleteUser:", error);
       toast({
         title: "Error",
-        description: "Failed to delete user.",
+        description: "An unexpected error occurred deleting the user",
         variant: "destructive",
       });
     }
   };
 
-  const handleAddNewUser = () => {
-    setSelectedUser(null);
-    setNewUser({
-      id: crypto.randomUUID(), // Generate a new UUID for the new user
-      name: "",
-      email: "",
-      role: "patient",
-      status: "Active"
-    });
-    setIsUserDialogOpen(true);
-  };
-
-  // Show authorization message if not an admin
-  if (isAuthenticated && user && user.role !== 'admin') {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-12">
-          <Alert className="mb-6 border-amber-500">
-            <AlertTitle className="text-amber-500">Admin Access Required</AlertTitle>
-            <AlertDescription>
-              You need admin privileges to access this page. Click the button below to gain admin access for testing.
-            </AlertDescription>
-          </Alert>
-          
-          <div className="flex justify-center">
-            <Button 
-              onClick={handleBecomeAdmin}
-              className="bg-amber-500 hover:bg-amber-600 text-white"
-            >
-              Become Admin (Development Mode)
-            </Button>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  // If not authenticated, redirect to login
-  if (!isAuthenticated) {
-    return (
-      <Layout>
-        <div className="container mx-auto px-4 py-12">
-          <Alert className="mb-6 border-red-500">
-            <AlertTitle className="text-red-500">Authentication Required</AlertTitle>
-            <AlertDescription>
-              You need to login before accessing the admin panel.
-            </AlertDescription>
-          </Alert>
-          
-          <div className="flex justify-center">
-            <Button 
-              onClick={() => navigate('/login')}
-              className="bg-blue-500 hover:bg-blue-600 text-white"
-            >
-              Go to Login
-            </Button>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
   return (
     <Layout>
-      <div className="container mx-auto px-4 py-6">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6">
-          <h1 className="text-3xl font-bold mb-4 md:mb-0">Admin Dashboard</h1>
-          <div className="flex space-x-2 w-full md:w-auto">
-            <Button 
-              onClick={handleBecomeAdmin}
-              className="bg-amber-500 hover:bg-amber-600 text-white"
-            >
-              Refresh Admin Status
-            </Button>
-            <Input
-              type="text"
-              placeholder="Search..."
-              className="w-full md:w-64"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <div className="flex items-center">
-              <Search size={18} className="ml-2 text-gray-500" />
-            </div>
-          </div>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+        <div className="flex justify-between items-center mb-6">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white">
+            Admin Dashboard
+          </h2>
         </div>
-        
-        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-4">
-          <TabsList className="grid grid-cols-4 md:grid-cols-5 lg:w-[600px]">
-            <TabsTrigger value="dashboard" className="flex items-center">
-              <Activity className="w-4 h-4 mr-2" />
-              <span className="hidden md:inline">Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center">
-              <User className="w-4 h-4 mr-2" />
-              <span className="hidden md:inline">Users</span>
-            </TabsTrigger>
-            <TabsTrigger value="doctors" className="flex items-center">
-              <Users className="w-4 h-4 mr-2" />
-              <span className="hidden md:inline">Doctors</span>
-            </TabsTrigger>
-            <TabsTrigger value="appointments" className="flex items-center">
-              <Calendar className="w-4 h-4 mr-2" />
-              <span className="hidden md:inline">Appointments</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" className="flex items-center">
-              <Settings2 className="w-4 h-4 mr-2" />
-              <span className="hidden md:inline">Settings</span>
-            </TabsTrigger>
+
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="mb-8">
+            <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            <TabsTrigger value="users">User Management</TabsTrigger>
+            <TabsTrigger value="appointments">Appointments</TabsTrigger>
+            <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
-          
-          <TabsContent value="dashboard" className="space-y-4">
-            <AnalyticsCards analyticsData={analyticsData} />
-            <RecentAppointments appointments={appointments} />
-          </TabsContent>
-          
-          <TabsContent value="users" className="space-y-4">
-            <UserManagement 
-              users={users} 
-              handleAddUser={handleAddNewUser}
-              handleEditUser={handleEditUser}
-              handleDeleteUser={handleDeleteUser}
+
+          <TabsContent value="analytics" className="space-y-8">
+            <AnalyticsCards 
+              userCount={usersData.length}
+              doctorCount={doctorsData.length}
+              appointmentCount={appointmentsData.length}
+            />
+            <RecentAppointments 
+              appointments={appointmentsData} 
+              doctors={doctorsData} 
+              isLoading={isLoading}
             />
           </TabsContent>
-          
-          <TabsContent value="doctors" className="space-y-4">
-            <div className="flex justify-between mb-4">
-              <h2 className="text-xl font-semibold">Manage Doctors</h2>
-              <button 
-                onClick={() => navigate('/doctor-registration')} 
-                className="px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md"
-              >
-                Add Doctor
-              </button>
-            </div>
-            
-            <div className="bg-white dark:bg-gray-900 rounded-lg shadow-md p-8">
-              <p className="text-center py-8 text-muted-foreground">
-                Doctor management interface under development. 
-                Use the Doctor Registration page to add new doctors.
-              </p>
-            </div>
+
+          <TabsContent value="users">
+            <UserManagement 
+              users={usersData} 
+              onAddUser={() => {
+                setSelectedUser(null);
+                setIsDialogOpen(true);
+              }}
+              onEditUser={(user) => {
+                setSelectedUser(user);
+                setIsDialogOpen(true);
+              }}
+              onDeleteUser={handleDeleteUser}
+              isLoading={isLoading}
+            />
           </TabsContent>
-          
-          <TabsContent value="appointments" className="space-y-4">
-            <AppointmentsManagement appointments={appointments} searchTerm={searchTerm} />
+
+          <TabsContent value="appointments">
+            <AppointmentsManagement 
+              appointments={appointmentsData} 
+              doctors={doctorsData} 
+              onStatusChange={async (appointmentId, newStatus) => {
+                const { error } = await supabase
+                  .from('appointments')
+                  .update({ status: newStatus })
+                  .eq('id', appointmentId);
+                
+                if (error) {
+                  toast({
+                    title: "Error",
+                    description: "Failed to update appointment status",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+                
+                // Update local state
+                setAppointmentsData(
+                  appointmentsData.map(appointment => 
+                    appointment.id === appointmentId 
+                      ? { ...appointment, status: newStatus } 
+                      : appointment
+                  )
+                );
+                
+                toast({
+                  title: "Success",
+                  description: "Appointment status updated",
+                });
+              }}
+              isLoading={isLoading}
+            />
           </TabsContent>
-          
-          <TabsContent value="settings" className="space-y-4">
+
+          <TabsContent value="settings">
             <AdminSettings />
           </TabsContent>
         </Tabs>
       </div>
       
-      {/* User Dialog */}
       <UserDialog
-        isOpen={isUserDialogOpen}
-        onOpenChange={setIsUserDialogOpen}
+        isOpen={isDialogOpen}
+        onOpenChange={setIsDialogOpen}
         selectedUser={selectedUser}
         newUser={newUser}
         onSelectedUserChange={setSelectedUser}
