@@ -1,17 +1,33 @@
-
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Layout from "@/components/layout/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/components/ui/use-toast";
-import { MessageSquare, Heart, Share2, MessageCircle, CheckCircle, Search } from "lucide-react";
+import { MessageSquare, Heart, Share2, MessageCircle, CheckCircle, Search, ThumbsUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { v4 as uuidv4 } from 'uuid';
 
-// Mock data for discussions
-const discussions = [
+interface Discussion {
+  id: number | string;
+  author: string;
+  authorType: string;
+  avatar: string;
+  topic: string;
+  title: string;
+  content: string;
+  date: string;
+  likes: number;
+  comments: number;
+  verified: boolean;
+  liked?: boolean;
+}
+
+const initialDiscussions = [
   {
     id: 1,
     author: "Dr. Sarah Johnson",
@@ -66,7 +82,6 @@ const discussions = [
   }
 ];
 
-// Mock data for health topics
 const healthTopics = [
   "Mental Health",
   "Heart Health",
@@ -92,26 +107,52 @@ const Community = () => {
   const [postTitle, setPostTitle] = useState("");
   const [postContent, setPostContent] = useState("");
   const [selectedTopic, setSelectedTopic] = useState("");
+  const [discussions, setDiscussions] = useState<Discussion[]>(initialDiscussions);
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handleLike = (postId: number) => {
+  const handleLike = (postId: number | string) => {
+    setDiscussions(discussions.map(discussion => {
+      if (discussion.id === postId) {
+        const wasLiked = discussion.liked;
+        return {
+          ...discussion,
+          likes: wasLiked ? discussion.likes - 1 : discussion.likes + 1,
+          liked: !wasLiked
+        };
+      }
+      return discussion;
+    }));
+    
     toast({
       title: "Post Liked",
       description: "You've liked this discussion post.",
     });
   };
 
-  const handleComment = (postId: number) => {
+  const handleComment = (postId: number | string) => {
+    setDiscussions(discussions.map(discussion => {
+      if (discussion.id === postId) {
+        return {
+          ...discussion,
+          showComments: true
+        };
+      }
+      return discussion;
+    }));
+    
     toast({
       title: "Add Comment",
       description: "Comment functionality would be implemented here.",
     });
   };
 
-  const handleShare = (postId: number) => {
-    toast({
-      title: "Share Post",
-      description: "Share functionality would be implemented here.",
+  const handleShare = (postId: number | string) => {
+    navigator.clipboard.writeText(`https://example.com/community/post/${postId}`).then(() => {
+      toast({
+        title: "Link Copied",
+        description: "Post link copied to clipboard. Ready to share!",
+      });
     });
   };
 
@@ -125,6 +166,22 @@ const Community = () => {
       return;
     }
     
+    const newDiscussion: Discussion = {
+      id: uuidv4(),
+      author: user?.name || "Anonymous User",
+      authorType: user?.role === "doctor" ? "Verified Doctor" : "Patient",
+      avatar: "https://images.unsplash.com/photo-1527980965255-d3b416303d12?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=256&q=80",
+      topic: selectedTopic,
+      title: postTitle,
+      content: postContent,
+      date: "Just now",
+      likes: 0,
+      comments: 0,
+      verified: user?.role === "doctor",
+    };
+    
+    setDiscussions([newDiscussion, ...discussions]);
+    
     toast({
       title: "Post Submitted",
       description: "Your discussion post has been submitted successfully.",
@@ -136,7 +193,6 @@ const Community = () => {
     setSelectedTopic("");
   };
 
-  // Filter discussions based on search term
   const filteredDiscussions = discussions.filter(
     (discussion) =>
       discussion.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -145,9 +201,75 @@ const Community = () => {
       discussion.topic.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const renderDiscussionCard = (discussion: Discussion) => (
+    <Card key={discussion.id}>
+      <CardHeader>
+        <div className="flex justify-between">
+          <div className="flex items-center">
+            <Avatar className="mr-2">
+              <AvatarImage src={discussion.avatar} />
+              <AvatarFallback>{discussion.author.charAt(0)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="flex items-center">
+                <span className="font-medium">{discussion.author}</span>
+                {discussion.verified && (
+                  <CheckCircle className="ml-1 h-4 w-4 text-mediwrap-blue" />
+                )}
+              </div>
+              <div className="text-sm text-gray-500">{discussion.authorType}</div>
+            </div>
+          </div>
+          <span className="text-sm text-gray-500">{discussion.date}</span>
+        </div>
+        <div className="mt-2">
+          <span className="inline-block bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs font-medium rounded px-2 py-1">
+            {discussion.topic}
+          </span>
+          <CardTitle className="mt-2">{discussion.title}</CardTitle>
+        </div>
+      </CardHeader>
+      <CardContent>
+        <p className="text-gray-600 dark:text-gray-400">
+          {discussion.content}
+        </p>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <div className="flex space-x-4">
+          <Button
+            variant="ghost"
+            size="sm"
+            className={`flex items-center ${discussion.liked ? 'text-blue-600' : 'text-gray-600 dark:text-gray-400'}`}
+            onClick={() => handleLike(discussion.id)}
+          >
+            {discussion.liked ? <ThumbsUp className="mr-1 h-4 w-4 fill-current" /> : <Heart className="mr-1 h-4 w-4" />}
+            <span>{discussion.likes}</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex items-center text-gray-600 dark:text-gray-400"
+            onClick={() => handleComment(discussion.id)}
+          >
+            <MessageCircle className="mr-1 h-4 w-4" />
+            <span>{discussion.comments}</span>
+          </Button>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          className="text-gray-600 dark:text-gray-400"
+          onClick={() => handleShare(discussion.id)}
+        >
+          <Share2 className="mr-1 h-4 w-4" />
+          <span>Share</span>
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+
   return (
     <Layout>
-      {/* Hero section */}
       <div className="bg-gradient-to-br from-mediwrap-orange/10 to-mediwrap-blue/10 dark:from-mediwrap-orange/5 dark:to-mediwrap-blue/5">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-16">
           <div className="text-center">
@@ -161,10 +283,8 @@ const Community = () => {
         </div>
       </div>
       
-      {/* Main content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="flex flex-col md:flex-row gap-8">
-          {/* Left sidebar */}
           <div className="md:w-1/4 space-y-6">
             <Card>
               <CardHeader>
@@ -218,7 +338,6 @@ const Community = () => {
             </Card>
           </div>
           
-          {/* Main content area */}
           <div className="md:w-3/4">
             <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-6">
               <div className="w-full md:w-auto flex-grow relative">
@@ -248,72 +367,7 @@ const Community = () => {
               
               <TabsContent value="discussions" className="space-y-6">
                 {filteredDiscussions.length > 0 ? (
-                  filteredDiscussions.map((discussion) => (
-                    <Card key={discussion.id}>
-                      <CardHeader>
-                        <div className="flex justify-between">
-                          <div className="flex items-center">
-                            <Avatar className="mr-2">
-                              <AvatarImage src={discussion.avatar} />
-                              <AvatarFallback>{discussion.author.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="flex items-center">
-                                <span className="font-medium">{discussion.author}</span>
-                                {discussion.verified && (
-                                  <CheckCircle className="ml-1 h-4 w-4 text-mediwrap-blue" />
-                                )}
-                              </div>
-                              <div className="text-sm text-gray-500">{discussion.authorType}</div>
-                            </div>
-                          </div>
-                          <span className="text-sm text-gray-500">{discussion.date}</span>
-                        </div>
-                        <div className="mt-2">
-                          <span className="inline-block bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs font-medium rounded px-2 py-1">
-                            {discussion.topic}
-                          </span>
-                          <CardTitle className="mt-2">{discussion.title}</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-gray-600 dark:text-gray-400">
-                          {discussion.content}
-                        </p>
-                      </CardContent>
-                      <CardFooter className="flex justify-between">
-                        <div className="flex space-x-4">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex items-center text-gray-600 dark:text-gray-400"
-                            onClick={() => handleLike(discussion.id)}
-                          >
-                            <Heart className="mr-1 h-4 w-4" />
-                            <span>{discussion.likes}</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex items-center text-gray-600 dark:text-gray-400"
-                            onClick={() => handleComment(discussion.id)}
-                          >
-                            <MessageCircle className="mr-1 h-4 w-4" />
-                            <span>{discussion.comments}</span>
-                          </Button>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-gray-600 dark:text-gray-400"
-                          onClick={() => handleShare(discussion.id)}
-                        >
-                          <Share2 className="mr-1 h-4 w-4" />
-                          <span>Share</span>
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))
+                  filteredDiscussions.map(discussion => renderDiscussionCard(discussion))
                 ) : (
                   <div className="text-center py-8">
                     <p className="text-gray-500 dark:text-gray-400">No discussions found matching your search.</p>
@@ -324,152 +378,19 @@ const Community = () => {
               <TabsContent value="doctor-posts" className="space-y-6">
                 {filteredDiscussions
                   .filter((discussion) => discussion.authorType.includes("Doctor"))
-                  .map((discussion) => (
-                    // Same card component as above for doctor posts
-                    <Card key={discussion.id}>
-                      <CardHeader>
-                        <div className="flex justify-between">
-                          <div className="flex items-center">
-                            <Avatar className="mr-2">
-                              <AvatarImage src={discussion.avatar} />
-                              <AvatarFallback>{discussion.author.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="flex items-center">
-                                <span className="font-medium">{discussion.author}</span>
-                                {discussion.verified && (
-                                  <CheckCircle className="ml-1 h-4 w-4 text-mediwrap-blue" />
-                                )}
-                              </div>
-                              <div className="text-sm text-gray-500">{discussion.authorType}</div>
-                            </div>
-                          </div>
-                          <span className="text-sm text-gray-500">{discussion.date}</span>
-                        </div>
-                        <div className="mt-2">
-                          <span className="inline-block bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs font-medium rounded px-2 py-1">
-                            {discussion.topic}
-                          </span>
-                          <CardTitle className="mt-2">{discussion.title}</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-gray-600 dark:text-gray-400">
-                          {discussion.content}
-                        </p>
-                      </CardContent>
-                      <CardFooter className="flex justify-between">
-                        <div className="flex space-x-4">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex items-center text-gray-600 dark:text-gray-400"
-                            onClick={() => handleLike(discussion.id)}
-                          >
-                            <Heart className="mr-1 h-4 w-4" />
-                            <span>{discussion.likes}</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex items-center text-gray-600 dark:text-gray-400"
-                            onClick={() => handleComment(discussion.id)}
-                          >
-                            <MessageCircle className="mr-1 h-4 w-4" />
-                            <span>{discussion.comments}</span>
-                          </Button>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-gray-600 dark:text-gray-400"
-                          onClick={() => handleShare(discussion.id)}
-                        >
-                          <Share2 className="mr-1 h-4 w-4" />
-                          <span>Share</span>
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
+                  .map(discussion => renderDiscussionCard(discussion))}
               </TabsContent>
               
               <TabsContent value="patient-experiences" className="space-y-6">
                 {filteredDiscussions
                   .filter((discussion) => discussion.authorType.includes("Patient"))
-                  .map((discussion) => (
-                    // Same card component as above for patient experiences
-                    <Card key={discussion.id}>
-                      <CardHeader>
-                        <div className="flex justify-between">
-                          <div className="flex items-center">
-                            <Avatar className="mr-2">
-                              <AvatarImage src={discussion.avatar} />
-                              <AvatarFallback>{discussion.author.charAt(0)}</AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <div className="flex items-center">
-                                <span className="font-medium">{discussion.author}</span>
-                                {discussion.verified && (
-                                  <CheckCircle className="ml-1 h-4 w-4 text-mediwrap-blue" />
-                                )}
-                              </div>
-                              <div className="text-sm text-gray-500">{discussion.authorType}</div>
-                            </div>
-                          </div>
-                          <span className="text-sm text-gray-500">{discussion.date}</span>
-                        </div>
-                        <div className="mt-2">
-                          <span className="inline-block bg-gray-100 dark:bg-gray-800 text-gray-800 dark:text-gray-200 text-xs font-medium rounded px-2 py-1">
-                            {discussion.topic}
-                          </span>
-                          <CardTitle className="mt-2">{discussion.title}</CardTitle>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-gray-600 dark:text-gray-400">
-                          {discussion.content}
-                        </p>
-                      </CardContent>
-                      <CardFooter className="flex justify-between">
-                        <div className="flex space-x-4">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex items-center text-gray-600 dark:text-gray-400"
-                            onClick={() => handleLike(discussion.id)}
-                          >
-                            <Heart className="mr-1 h-4 w-4" />
-                            <span>{discussion.likes}</span>
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="flex items-center text-gray-600 dark:text-gray-400"
-                            onClick={() => handleComment(discussion.id)}
-                          >
-                            <MessageCircle className="mr-1 h-4 w-4" />
-                            <span>{discussion.comments}</span>
-                          </Button>
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-gray-600 dark:text-gray-400"
-                          onClick={() => handleShare(discussion.id)}
-                        >
-                          <Share2 className="mr-1 h-4 w-4" />
-                          <span>Share</span>
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  ))}
+                  .map(discussion => renderDiscussionCard(discussion))}
               </TabsContent>
             </Tabs>
           </div>
         </div>
       </div>
       
-      {/* New Discussion Modal */}
       {showNewPost && (
         <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-center justify-center p-4">
           <Card className="w-full max-w-2xl">
