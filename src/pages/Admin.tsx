@@ -16,6 +16,7 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState("analytics");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [appointmentsSearchTerm, setAppointmentsSearchTerm] = useState("");
   const { user } = useAuth();
   
   const {
@@ -81,7 +82,8 @@ const Admin = () => {
           <TabsContent value="appointments">
             <AppointmentsManagement 
               appointments={appointmentsData}
-              searchTerm=""
+              searchTerm={appointmentsSearchTerm}
+              onSearchChange={setAppointmentsSearchTerm}
               isLoading={isLoading}
             />
           </TabsContent>

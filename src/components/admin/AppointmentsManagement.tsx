@@ -3,8 +3,9 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Search } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface Appointment {
   id: string;
@@ -19,21 +20,31 @@ interface Appointment {
 interface AppointmentsManagementProps {
   appointments: Appointment[];
   searchTerm: string;
+  onSearchChange?: (term: string) => void;
   onStatusChange?: (appointmentId: string, newStatus: string) => Promise<void>;
   doctors?: any[];
   isLoading?: boolean;
 }
 
-const AppointmentsManagement = ({ appointments, searchTerm, onStatusChange, isLoading }: AppointmentsManagementProps) => {
+const AppointmentsManagement = ({ 
+  appointments, 
+  searchTerm, 
+  onSearchChange, 
+  onStatusChange, 
+  isLoading 
+}: AppointmentsManagementProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
+  const [localSearchTerm, setLocalSearchTerm] = useState(searchTerm || "");
 
   // Filter appointments based on search term
   const filteredAppointments = appointments.filter(
     appointment => 
-      appointment.doctor_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.patient_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      appointment.status.toLowerCase().includes(searchTerm.toLowerCase())
+      appointment.doctor_name.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
+      appointment.patient_name.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
+      appointment.status.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
+      appointment.date.toLowerCase().includes(localSearchTerm.toLowerCase()) ||
+      appointment.type.toLowerCase().includes(localSearchTerm.toLowerCase())
   );
   
   const indexOfLastItem = currentPage * itemsPerPage;
@@ -42,6 +53,15 @@ const AppointmentsManagement = ({ appointments, searchTerm, onStatusChange, isLo
   
   // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
+
+  const handleSearch = (value: string) => {
+    setLocalSearchTerm(value);
+    if (onSearchChange) {
+      onSearchChange(value);
+    }
+    // Reset to first page when searching
+    setCurrentPage(1);
+  };
 
   if (isLoading) {
     return (
@@ -55,6 +75,17 @@ const AppointmentsManagement = ({ appointments, searchTerm, onStatusChange, isLo
     <>
       <div className="flex justify-between mb-4">
         <h2 className="text-xl font-semibold">Manage Appointments</h2>
+      </div>
+      
+      {/* Search Bar */}
+      <div className="mb-4 relative">
+        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+        <Input
+          placeholder="Search appointments..."
+          className="pl-10"
+          value={localSearchTerm}
+          onChange={(e) => handleSearch(e.target.value)}
+        />
       </div>
       
       <Card>
