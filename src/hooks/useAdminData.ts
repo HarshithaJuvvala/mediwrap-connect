@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { User, Doctor, Appointment, AnalyticsData } from "@/types/admin";
@@ -48,8 +47,8 @@ export function useAdminData() {
         const doctor = doctors.find(d => d.id === appointment.doctor_id);
         return {
           ...appointment,
-          doctor_name: doctor ? doctor.name : "Unknown Doctor",
-          patient_name: "Patient"
+          doctor_name: doctor ? doctor.name : "Unknown Doctor", // Ensure doctor_name is always set
+          patient_name: "Patient" // Ensure patient_name is always set
         };
       });
       

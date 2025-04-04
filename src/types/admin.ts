@@ -32,8 +32,8 @@ export interface Appointment {
   time: string;
   type: string;
   status: string;
-  doctor_name?: string;
-  patient_name?: string;
+  doctor_name: string; // Changed from optional to required
+  patient_name: string; // Changed from optional to required
 }
 
 export interface AnalyticsData {
