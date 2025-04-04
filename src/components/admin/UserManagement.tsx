@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronLeft, ChevronRight, Edit, Plus, Trash2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 interface User {
   id: string;
@@ -18,9 +19,10 @@ interface UserManagementProps {
   handleAddUser: () => void;
   handleEditUser: (user: User) => void;
   handleDeleteUser: (userId: string) => void;
+  isLoading?: boolean;
 }
 
-const UserManagement = ({ users, handleAddUser, handleEditUser, handleDeleteUser }: UserManagementProps) => {
+const UserManagement = ({ users, handleAddUser, handleEditUser, handleDeleteUser, isLoading }: UserManagementProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
   const [searchTerm, setSearchTerm] = useState("");
@@ -40,6 +42,14 @@ const UserManagement = ({ users, handleAddUser, handleEditUser, handleDeleteUser
   // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p>Loading user data...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex justify-between mb-4">
@@ -51,6 +61,15 @@ const UserManagement = ({ users, handleAddUser, handleEditUser, handleDeleteUser
           <Plus className="w-4 h-4 mr-2" />
           Add User
         </Button>
+      </div>
+      
+      <div className="mb-4">
+        <Input
+          placeholder="Search users..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="max-w-sm"
+        />
       </div>
       
       <Card>

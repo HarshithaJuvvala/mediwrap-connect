@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface Appointment {
   id: string;
@@ -18,9 +19,12 @@ interface Appointment {
 interface AppointmentsManagementProps {
   appointments: Appointment[];
   searchTerm: string;
+  onStatusChange?: (appointmentId: string, newStatus: string) => Promise<void>;
+  doctors?: any[];
+  isLoading?: boolean;
 }
 
-const AppointmentsManagement = ({ appointments, searchTerm }: AppointmentsManagementProps) => {
+const AppointmentsManagement = ({ appointments, searchTerm, onStatusChange, isLoading }: AppointmentsManagementProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(5);
 
@@ -39,6 +43,14 @@ const AppointmentsManagement = ({ appointments, searchTerm }: AppointmentsManage
   // Change page
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber);
 
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <p>Loading appointment data...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="flex justify-between mb-4">
@@ -56,6 +68,7 @@ const AppointmentsManagement = ({ appointments, searchTerm }: AppointmentsManage
                 <TableHead>Time</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Type</TableHead>
+                {onStatusChange && <TableHead>Actions</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -90,11 +103,29 @@ const AppointmentsManagement = ({ appointments, searchTerm }: AppointmentsManage
                         {appointment.type}
                       </span>
                     </TableCell>
+                    {onStatusChange && (
+                      <TableCell>
+                        <Select
+                          defaultValue={appointment.status}
+                          onValueChange={(value) => onStatusChange(appointment.id, value)}
+                        >
+                          <SelectTrigger className="w-[130px]">
+                            <SelectValue placeholder="Update status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="pending">Pending</SelectItem>
+                            <SelectItem value="confirmed">Confirmed</SelectItem>
+                            <SelectItem value="cancelled">Cancelled</SelectItem>
+                            <SelectItem value="completed">Completed</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </TableCell>
+                    )}
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-4">
+                  <TableCell colSpan={onStatusChange ? 7 : 6} className="text-center py-4">
                     No appointments found
                   </TableCell>
                 </TableRow>

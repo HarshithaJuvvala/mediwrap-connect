@@ -39,6 +39,8 @@ interface Appointment {
   time: string;
   type: string;
   status: string;
+  doctor_name?: string;
+  patient_name?: string;
 }
 
 interface User {
@@ -131,7 +133,17 @@ const Admin = () => {
           variant: "destructive",
         });
       } else {
-        setAppointmentsData(appointments || []);
+        // Process appointments to add doctor and patient names
+        const processedAppointments = appointments?.map(appointment => {
+          const doctor = doctorsData.find(d => d.id === appointment.doctor_id);
+          return {
+            ...appointment,
+            doctor_name: doctor ? doctor.name : "Unknown Doctor",
+            patient_name: "Patient"
+          };
+        }) || [];
+        
+        setAppointmentsData(processedAppointments);
       }
       
       console.log("Fetched data:", { 
@@ -324,67 +336,53 @@ const Admin = () => {
 
           <TabsContent value="analytics" className="space-y-8">
             <AnalyticsCards 
-              userCount={usersData.length}
-              doctorCount={doctorsData.length}
-              appointmentCount={appointmentsData.length}
+              analyticsData={{
+                totalUsers: usersData.length,
+                totalDoctors: doctorsData.length,
+                activeAppointments: appointmentsData.length,
+                totalRevenue: 25000
+              }}
             />
             <RecentAppointments 
-              appointments={appointmentsData} 
-              doctors={doctorsData} 
-              isLoading={isLoading}
+              appointments={appointmentsData.slice(0, 5).map(a => ({
+                id: a.id,
+                doctor_name: a.doctor_name || "Unknown Doctor",
+                patient_name: a.patient_name || "Unknown Patient",
+                date: a.date,
+                time: a.time,
+                status: a.status,
+                type: a.type
+              }))} 
             />
           </TabsContent>
 
           <TabsContent value="users">
             <UserManagement 
-              users={usersData} 
-              onAddUser={() => {
+              users={usersData}
+              handleAddUser={() => {
                 setSelectedUser(null);
                 setIsDialogOpen(true);
               }}
-              onEditUser={(user) => {
+              handleEditUser={(user) => {
                 setSelectedUser(user);
                 setIsDialogOpen(true);
               }}
-              onDeleteUser={handleDeleteUser}
-              isLoading={isLoading}
+              handleDeleteUser={handleDeleteUser}
             />
           </TabsContent>
 
           <TabsContent value="appointments">
             <AppointmentsManagement 
-              appointments={appointmentsData} 
-              doctors={doctorsData} 
-              onStatusChange={async (appointmentId, newStatus) => {
-                const { error } = await supabase
-                  .from('appointments')
-                  .update({ status: newStatus })
-                  .eq('id', appointmentId);
-                
-                if (error) {
-                  toast({
-                    title: "Error",
-                    description: "Failed to update appointment status",
-                    variant: "destructive",
-                  });
-                  return;
-                }
-                
-                // Update local state
-                setAppointmentsData(
-                  appointmentsData.map(appointment => 
-                    appointment.id === appointmentId 
-                      ? { ...appointment, status: newStatus } 
-                      : appointment
-                  )
-                );
-                
-                toast({
-                  title: "Success",
-                  description: "Appointment status updated",
-                });
-              }}
-              isLoading={isLoading}
+              appointments={appointmentsData.map(a => ({
+                id: a.id,
+                doctor_name: a.doctor_name || "Unknown Doctor",
+                patient_name: a.patient_name || "Unknown Patient",
+                date: a.date,
+                time: a.time,
+                status: a.status,
+                type: a.type
+              }))}
+              searchTerm=""
             />
           </TabsContent>
 
