@@ -94,10 +94,11 @@ const Admin = () => {
           variant: "destructive",
         });
       } else {
+        // Modified this part to handle missing email field
         const formattedUsers = users?.map(user => ({
           id: user.id,
           name: user.name || "Unknown",
-          email: user.email || "No email",
+          email: "No email", // Since email doesn't exist in profiles table
           role: user.role || "patient",
           status: "Active" as "Active" | "Inactive"
         })) || [];
@@ -166,10 +167,10 @@ const Admin = () => {
 
   const handleAddUser = async () => {
     // Validate the new user data
-    if (!newUser.name || !newUser.email || !newUser.role) {
+    if (!newUser.name || !newUser.role) {
       toast({
         title: "Missing Information",
-        description: "Please fill in all fields",
+        description: "Please fill in all required fields",
         variant: "destructive",
       });
       return;
@@ -181,11 +182,11 @@ const Admin = () => {
       console.log("Adding new user with ID:", userId);
       
       // Add the user to the profiles table
+      // Note: We're not storing email in profiles table
       const { error } = await supabase.from('profiles').insert([
         {
           id: userId,
           name: newUser.name,
-          email: newUser.email,
           role: newUser.role
         }
       ]);
@@ -235,11 +236,11 @@ const Admin = () => {
     if (!selectedUser) return;
     
     try {
+      // Note: We're not updating email in profiles table
       const { error } = await supabase
         .from('profiles')
         .update({
           name: selectedUser.name,
-          email: selectedUser.email,
           role: selectedUser.role
         })
         .eq('id', selectedUser.id);
@@ -353,6 +354,7 @@ const Admin = () => {
                 status: a.status,
                 type: a.type
               }))} 
+              isLoading={isLoading}
             />
           </TabsContent>
 
@@ -368,6 +370,7 @@ const Admin = () => {
                 setIsDialogOpen(true);
               }}
               handleDeleteUser={handleDeleteUser}
+              isLoading={isLoading}
             />
           </TabsContent>
 
@@ -383,6 +386,7 @@ const Admin = () => {
                 type: a.type
               }))}
               searchTerm=""
+              isLoading={isLoading}
             />
           </TabsContent>
 
